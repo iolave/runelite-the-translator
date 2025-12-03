@@ -93,7 +93,7 @@ public class TranslatorPlugin extends Plugin
             }
             return words;
         } catch (IOException e) {
-            System.out.println("An error occurred.");
+            // System.out.println("An error occurred.");
             e.printStackTrace();
             return null;
         }
@@ -112,7 +112,7 @@ public class TranslatorPlugin extends Plugin
             }
             return words;
         } catch (IOException e) {
-            System.out.println("An error occurred.");
+            // System.out.println("An error occurred.");
             e.printStackTrace();
             return null;
         }
@@ -211,7 +211,7 @@ public class TranslatorPlugin extends Plugin
                 //amount after item
                 if (itemSubStrings.length > 1){
                     String amount = "("+itemSubStrings[itemSubStrings.length-1];
-                    System.out.println(amount);
+                    // System.out.println(amount);
                     if (translated != null) {
                         menuEntry.setTarget(colour + translated + amount);
                     }

@@ -50,7 +50,7 @@ import java.util.HashMap;
 
 
 @PluginDescriptor(
-        name = "the-translator",
+        name = "Translator",
         description = "translate npc, items, objects and dialogue",
         tags = {"actions"}
 )
@@ -121,7 +121,7 @@ public class TranslatorPlugin extends Plugin
     @Subscribe
     public void onConfigChanged(ConfigChanged event)
     {
-        if (!event.getGroup().equals("the-translator"))
+        if (!event.getGroup().equals("translator"))
         {
             return;
         }

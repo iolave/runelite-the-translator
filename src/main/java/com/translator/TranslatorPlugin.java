@@ -44,10 +44,10 @@ import net.runelite.client.game.ItemManager;
 
 import javax.inject.Inject;
 import java.io.*;
+import java.net.*;
 import java.util.Arrays;
 import java.util.HashMap;
-
-
+import java.util.HashSet;
 
 @PluginDescriptor(
         name = "Translator",
@@ -70,6 +70,8 @@ public class TranslatorPlugin extends Plugin
     private HashMap<String, String> npcMap;
     private HashMap<String, String> objectMap;
     private HashMap<String, String> dialogueMap;
+    private final HashSet<String> dialoguesToSend = new HashSet<String>();
+    private Widget prevTickWidget;
     private Actor actor;
 
 
@@ -77,6 +79,25 @@ public class TranslatorPlugin extends Plugin
     protected void startUp() throws Exception
     {
         updateLanguage();
+        Runnable r = () -> {
+            TranslatorAPI api = new TranslatorAPI();
+
+            while (true) {
+                try {
+                    Thread.sleep(1000*60*5);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                try {
+                    api.sendDialogues(dialoguesToSend);
+                    dialoguesToSend.clear();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+
+        new Thread(r).start();
     }
 
 
@@ -93,7 +114,6 @@ public class TranslatorPlugin extends Plugin
             }
             return words;
         } catch (IOException e) {
-            // System.out.println("An error occurred.");
             e.printStackTrace();
             return null;
         }
@@ -112,7 +132,6 @@ public class TranslatorPlugin extends Plugin
             }
             return words;
         } catch (IOException e) {
-            // System.out.println("An error occurred.");
             e.printStackTrace();
             return null;
         }
@@ -211,7 +230,6 @@ public class TranslatorPlugin extends Plugin
                 //amount after item
                 if (itemSubStrings.length > 1){
                     String amount = "("+itemSubStrings[itemSubStrings.length-1];
-                    // System.out.println(amount);
                     if (translated != null) {
                         menuEntry.setTarget(colour + translated + amount);
                     }
@@ -243,37 +261,76 @@ public class TranslatorPlugin extends Plugin
         }
     }
 
-    private void checkWidgetOptionDialogs(){
-		if (!config.translateWidgetsOptions()){
+	private void checkWidgetOptionDialogs() {
+		if (!config.translateWidgetsOptions()) {
 			return;
 		}
 
-        Widget playerOptionsWidget = client.getWidget(ComponentID.DIALOG_OPTION_OPTIONS);
-        Widget[] optionWidgets = playerOptionsWidget.getChildren();
-        if (optionWidgets != null) {
-            for (Widget i : optionWidgets) {
-                String optionText = i.getText() != null ? i.getText().replace("<br>", " ") : null;
-                if (optionText != null && dialogueMap.get(optionText) != null) {
-                    i.setText(dialogueMap.get(optionText));
-                }
-            }
+		Widget playerOptionsWidget = client.getWidget(ComponentID.DIALOG_OPTION_OPTIONS);
+        if (playerOptionsWidget == null) {
+            return;
         }
-    }
+
+        Widget[] optionWidgets = playerOptionsWidget.getChildren();
+		if (optionWidgets == null) {
+			return;
+		}
+
+        boolean shouldSetDialogues = false;
+        if (prevTickWidget == null) {
+            shouldSetDialogues = true;
+        } else if (!prevTickWidget.toString().equals(playerOptionsWidget.toString())) {
+            shouldSetDialogues = true;
+        }
+        prevTickWidget = playerOptionsWidget;
+
+		for (Widget widget : optionWidgets) {
+            String optionText = widget.getText();
+            if (optionText == null) {
+                continue;
+            }
+            optionText = optionText.replace("<br>", " ");
+            if (shouldSetDialogues) {
+                dialoguesToSend.add(optionText);
+            }
+
+			if (dialogueMap.get(optionText) != null) {
+				widget.setText(dialogueMap.get(optionText));
+			}
+		}
+	}
 
     private void checkWidgetDialogs()
     {
-        Widget npcTextWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
-        String npcDialogText = (npcTextWidget != null) ? npcTextWidget.getText() : null;
-        Widget playerTextWidget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
-        String playerDialogText = (playerTextWidget != null) ? playerTextWidget.getText() : null;
-        String npcdialogue = npcDialogText != null ? npcDialogText.replace("<br>", " ") : null;
-        String playerdialogue = playerDialogText != null ? playerDialogText.replace("<br>", " ") : null;
-
-        if (npcdialogue!= null && dialogueMap.get(npcdialogue) != null) {
-            npcTextWidget.setText(dialogueMap.get(npcdialogue));
+        Widget widget;
+        if (client.getWidget(ComponentID.DIALOG_NPC_TEXT) != null) {
+            widget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
+        } else {
+            widget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
         }
-        if (playerdialogue!= null && dialogueMap.get(playerdialogue) != null) {
-            playerTextWidget.setText(dialogueMap.get(playerdialogue));
+
+        if (widget == null) {
+            return;
+        }
+
+        String text = widget.getText();
+        if (text == null) {
+            return;
+        }
+        text = text.replace("<br>", " ");
+
+        boolean shouldSetDialogues = false;
+        if (prevTickWidget == null) {
+            shouldSetDialogues = true;
+        } else if (!prevTickWidget.toString().equals(widget.toString())) {
+            shouldSetDialogues = true;
+        }
+        prevTickWidget = widget;
+		if (shouldSetDialogues) {
+			dialoguesToSend.add(text);
+		}
+        if (dialogueMap.get(text) != null) {
+            widget.setText(dialogueMap.get(text));
         }
     }
 }

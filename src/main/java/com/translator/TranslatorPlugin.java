@@ -239,12 +239,15 @@ public class TranslatorPlugin extends Plugin
         if (actor != null)
         {
             checkWidgetDialogs();
-            //checkWidgetOptionDialogs(); messes with questhelper
+            checkWidgetOptionDialogs();
         }
     }
 
-    private void checkWidgetOptionDialogs()
-    {
+    private void checkWidgetOptionDialogs(){
+		if (!config.translateWidgetsOptions()){
+			return;
+		}
+
         Widget playerOptionsWidget = client.getWidget(ComponentID.DIALOG_OPTION_OPTIONS);
         Widget[] optionWidgets = playerOptionsWidget.getChildren();
         if (optionWidgets != null) {

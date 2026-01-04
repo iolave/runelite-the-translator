@@ -31,19 +31,28 @@ import net.runelite.client.config.ConfigItem;
 @ConfigGroup("translator")
 public interface TranslatorConfig extends Config
 {
-    enum SelectLanguage{
-	Spanish,
-        Finnish
-    }
+	enum SelectLanguage{
+		Spanish,
+		Finnish
+	}
 
-    @ConfigItem(
-            keyName = "Select Language",
-            name = "Language",
-            description = "Select target language",
-            position = 1
-    )
-    default SelectLanguage selectLanguage()
-    {
-        return SelectLanguage.Spanish;
-    }
+	@ConfigItem(
+		keyName = "Select Language",
+		name = "Language",
+		description = "Select target language",
+		position = 1
+	)
+	default SelectLanguage selectLanguage() {
+		return SelectLanguage.Spanish;
+	}
+
+	@ConfigItem(
+		keyName = "translateWidgetsOptions",
+		name = "Translate Dialogues Options",
+		description = "Translate dialogues options (messes with quest helper)",
+		position = 2
+	)
+	default boolean translateWidgetsOptions() {
+		return false;
+	}
 }

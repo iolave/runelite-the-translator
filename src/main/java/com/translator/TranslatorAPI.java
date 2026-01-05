@@ -1,17 +1,22 @@
 package com.translator;
 
 import com.google.gson.JsonArray;
+import okhttp3.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.HashSet;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-import static java.net.http.HttpClient.newHttpClient;
-
+@Singleton
 class TranslatorAPI {
-	HttpClient client = newHttpClient();
+	private static final Logger log = LoggerFactory.getLogger(TranslatorAPI.class);
+	/**
+	 * An HTTP Client to access the Google Translate API.
+	 */
+	@Inject
+	private OkHttpClient client;
 
 	/**
 	 * Send collected dialogues to the runelite-translator-api.
@@ -24,22 +29,21 @@ class TranslatorAPI {
 			body.add(d);
 		}
 
-		HttpRequest request = HttpRequest.newBuilder()
-			.uri(URI.create("https://runelite-translator-api-production.up.railway.app/api/v1/dialogues"))
-			.setHeader("Content-Type", "application/json")
-			.POST(HttpRequest.BodyPublishers.ofString(body.toString()))
+		MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+		RequestBody rb = RequestBody.create(JSON, body.toString());
+
+		Request req = new Request.Builder()
+			.header("Content-Type", "application/json")
+			.method("POST", rb)
+			.url("https://runelite-translator-api-production.up.railway.app/api/v1/dialogues")
 			.build();
 
-		HttpResponse<Void> response = null;
-		response = client.send(
-			request,
-			HttpResponse.BodyHandlers.discarding());
-
-		if (response.statusCode() == 200) {
-			return;
+		Response response = client.newCall(req).execute();
+		if (response.code() != 200) {
+			response.close();
+			throw new Exception("failed to send dialogues, got status " + response.code());
 		}
-
-		throw new Exception("Some required files are missing");
+		response.close();
 	}
 }
 

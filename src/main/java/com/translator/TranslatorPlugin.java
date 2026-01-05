@@ -41,6 +41,8 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.game.ItemManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.io.*;
@@ -57,7 +59,8 @@ import java.util.HashSet;
 public class TranslatorPlugin extends Plugin
 {
 
-    @Inject
+	private static final Logger log = LoggerFactory.getLogger(TranslatorPlugin.class);
+	@Inject
     private TranslatorConfig config;
     @Inject
     private Client client;
@@ -65,6 +68,8 @@ public class TranslatorPlugin extends Plugin
     private ItemManager itemManager;
     @Provides
     TranslatorConfig provideConfig(ConfigManager configManager) {return configManager.getConfig(TranslatorConfig.class);}
+	@Inject
+	private TranslatorAPI api;
 
     private HashMap<String, String> itemsMap;
     private HashMap<String, String> npcMap;
@@ -80,8 +85,6 @@ public class TranslatorPlugin extends Plugin
     {
         updateLanguage();
         Runnable r = () -> {
-            TranslatorAPI api = new TranslatorAPI();
-
             while (true) {
                 try {
                     Thread.sleep(1000*60*5);
@@ -89,10 +92,11 @@ public class TranslatorPlugin extends Plugin
                     throw new RuntimeException(e);
                 }
                 try {
-                    api.sendDialogues(dialoguesToSend);
+					log.debug("sending dialogues: {}", dialoguesToSend);
+					api.sendDialogues(dialoguesToSend);
                     dialoguesToSend.clear();
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+					log.error("failed to send dialogues to backend", e);
                 }
             }
         };

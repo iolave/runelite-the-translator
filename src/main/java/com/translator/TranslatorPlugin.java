@@ -50,6 +50,9 @@ import java.net.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @PluginDescriptor(
         name = "Translator",
@@ -70,6 +73,7 @@ public class TranslatorPlugin extends Plugin
     TranslatorConfig provideConfig(ConfigManager configManager) {return configManager.getConfig(TranslatorConfig.class);}
 	@Inject
 	private TranslatorAPI api;
+	private ScheduledExecutorService executor;
 
     private HashMap<String, String> itemsMap;
     private HashMap<String, String> npcMap;
@@ -82,29 +86,43 @@ public class TranslatorPlugin extends Plugin
 
     @Override
     protected void startUp() throws Exception {
-        updateLanguage();
-		if (config.enableTextCapture()) {
-			Runnable r = () -> {
-				while (true) {
-					try {
-						Thread.sleep(1000*60*5);
-					} catch (InterruptedException e) {
-						throw new RuntimeException(e);
-					}
-					try {
-						log.debug("sending dialogues: {}", dialoguesToSend);
-						api.sendDialogues(dialoguesToSend);
-						dialoguesToSend.clear();
-					} catch (Exception e) {
-						log.error("failed to send dialogues to backend", e);
-					}
-				}
-			};
+		executor = Executors.newSingleThreadScheduledExecutor();
 
-			new Thread(r).start();
+		if (config.enableTextCapture()) {
+			executor.scheduleAtFixedRate(
+				this::collectGameTexts,
+				0,
+				5,
+				TimeUnit.MINUTES
+			);
 		}
+
+        updateLanguage();
     }
 
+	@Override
+	protected void shutDown() {
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event) {
+		if (event.getGroup().equals("translator")) {
+			updateLanguage();
+		}
+
+		if (event.getKey().equals("enableOSRSTextCollection")) {
+			if (config.enableTextCapture()) {
+				executor.scheduleAtFixedRate(
+					this::collectGameTexts,
+					0,
+					10,
+					TimeUnit.SECONDS
+				);
+			} else {
+				executor.shutdownNow();
+			}
+		}
+	}
 
     public HashMap<String, String> parseDialogue(String filepath) {
         HashMap<String, String> words = new HashMap<String, String>();
@@ -140,16 +158,6 @@ public class TranslatorPlugin extends Plugin
             e.printStackTrace();
             return null;
         }
-    }
-
-    @Subscribe
-    public void onConfigChanged(ConfigChanged event)
-    {
-        if (!event.getGroup().equals("translator"))
-        {
-            return;
-        }
-        updateLanguage();
     }
 
     private void updateLanguage()
@@ -294,10 +302,10 @@ public class TranslatorPlugin extends Plugin
             if (optionText == null) {
                 continue;
             }
-            optionText = optionText.replace("<br>", " ");
+			optionText = optionText.replace("<br>", " ");
             if (shouldSetDialogues) {
                 dialoguesToSend.add(optionText);
-            }
+			}
 
 			if (dialogueMap.get(optionText) != null) {
 				widget.setText(dialogueMap.get(optionText));
@@ -338,4 +346,18 @@ public class TranslatorPlugin extends Plugin
             widget.setText(dialogueMap.get(text));
         }
     }
+
+	private void collectGameTexts() {
+		try {
+			if (dialoguesToSend.isEmpty()) {
+				log.debug("no dialogues to send");
+			} else {
+				log.debug("sending dialogues: {}", dialoguesToSend);
+				api.sendDialogues(dialoguesToSend);
+				dialoguesToSend.clear();
+			}
+		} catch (Exception e) {
+			log.error("failed to send dialogues to backend", e);
+		}
+	}
 }

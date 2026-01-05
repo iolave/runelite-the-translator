@@ -47,12 +47,26 @@ public interface TranslatorConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "enableOSRSTextCollection",
+		name = "Enable text capture",
+		description = "If enabled, OSRS game texts will be captured in order to improve and have a more complete translation system (dialogues, guides, npc names).\n"+
+			"We highly suggest to enable this option so you can contribute to the plugin.",
+		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or verified by Runelite developers.",
+		position = 2
+	)
+	default boolean enableTextCapture() {
+		return false;
+	}
+
+	@ConfigItem(
 		keyName = "translateWidgetsOptions",
 		name = "Translate Dialogues Options",
 		description = "Translate dialogues options (messes with quest helper)",
-		position = 2
+		position = 3
 	)
 	default boolean translateWidgetsOptions() {
 		return false;
 	}
+
+
 }

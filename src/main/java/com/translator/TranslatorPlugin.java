@@ -81,27 +81,28 @@ public class TranslatorPlugin extends Plugin
 
 
     @Override
-    protected void startUp() throws Exception
-    {
+    protected void startUp() throws Exception {
         updateLanguage();
-        Runnable r = () -> {
-            while (true) {
-                try {
-                    Thread.sleep(1000*60*5);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                try {
-					log.debug("sending dialogues: {}", dialoguesToSend);
-					api.sendDialogues(dialoguesToSend);
-                    dialoguesToSend.clear();
-                } catch (Exception e) {
-					log.error("failed to send dialogues to backend", e);
-                }
-            }
-        };
+		if (config.enableTextCapture()) {
+			Runnable r = () -> {
+				while (true) {
+					try {
+						Thread.sleep(1000*60*5);
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+					try {
+						log.debug("sending dialogues: {}", dialoguesToSend);
+						api.sendDialogues(dialoguesToSend);
+						dialoguesToSend.clear();
+					} catch (Exception e) {
+						log.error("failed to send dialogues to backend", e);
+					}
+				}
+			};
 
-        new Thread(r).start();
+			new Thread(r).start();
+		}
     }
 
 

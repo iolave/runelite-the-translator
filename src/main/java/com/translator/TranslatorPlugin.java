@@ -102,6 +102,7 @@ public class TranslatorPlugin extends Plugin
 
 	@Override
 	protected void shutDown() {
+		executor.shutdownNow();
 	}
 
 	@Subscribe

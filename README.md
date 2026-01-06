@@ -4,10 +4,13 @@ A Runelite plugin that translates Old School RuneScape in-game text to another l
 
 ## Features
 
-*   Translates NPC dialogues.
-*   Supports Spanish and Finnish.
-*   Dialogue collection to improve translations.
-*   Option to enable/disable translation of dialogue options.
+*   Translates game text, including:
+    *   NPC dialogues
+    *   Items
+    *   Objects
+    *   Menus and options
+*   Supports Spanish, Finnish, and Portuguese.
+*   Dialogue collection to improve translations (Opt-in).
 
 ## Installation
 
@@ -19,9 +22,10 @@ A Runelite plugin that translates Old School RuneScape in-game text to another l
 
 You can configure the plugin by going to the plugin settings.
 
-*   **Language**: Choose the target language for translation (Spanish or Finnish).
+*   **Language**: Choose the target language for translation (Spanish, Finnish, or Portuguese).
 *   **Translate Dialogues Options**: Enable or disable the translation of dialogue options.
     *   **Warning**: Enabling this option may interfere with the Quest Helper plugin.
+*   **Enable text capture**: Opt-in to collect dialogue data to improve translations.
 
 ## Known Issues
 
@@ -29,7 +33,7 @@ You can configure the plugin by going to the plugin settings.
 
 ## Contributing
 
-This plugin collects dialogue data and sends it to a public API to improve the quality of the translations. By using this plugin, you are helping to improve the translations for everyone.
+You can contribute to this project by enabling the "Enable text capture" option in the plugin settings. This will send dialogue data to a public API to improve the quality of the translations.
 
 ## License
 

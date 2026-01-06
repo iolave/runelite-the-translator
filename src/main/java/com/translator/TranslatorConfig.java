@@ -33,7 +33,8 @@ public interface TranslatorConfig extends Config
 {
 	enum SelectLanguage{
 		Spanish,
-		Finnish
+		Finnish,
+		Portuguese
 	}
 
 	@ConfigItem(

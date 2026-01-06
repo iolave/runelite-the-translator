@@ -116,8 +116,8 @@ public class TranslatorPlugin extends Plugin
 				executor.scheduleAtFixedRate(
 					this::collectGameTexts,
 					0,
-					10,
-					TimeUnit.SECONDS
+					5,
+					TimeUnit.MINUTES
 				);
 			} else {
 				executor.shutdownNow();

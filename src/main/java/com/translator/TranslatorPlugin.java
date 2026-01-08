@@ -314,8 +314,11 @@ public class TranslatorPlugin extends Plugin
 		}
 	}
 
-    private void checkWidgetDialogs()
-    {
+    private void checkWidgetDialogs() {
+		if (!config.translateWidgets()) {
+			return;
+		}
+		
         Widget widget;
         if (client.getWidget(ComponentID.DIALOG_NPC_TEXT) != null) {
             widget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);

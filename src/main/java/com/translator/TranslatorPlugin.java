@@ -35,6 +35,7 @@ import net.runelite.api.events.MenuOpened;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.ItemComposition;
+import net.runelite.client.RuneLite;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -47,6 +48,9 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -61,7 +65,6 @@ import java.util.concurrent.TimeUnit;
 )
 public class TranslatorPlugin extends Plugin
 {
-
 	private static final Logger log = LoggerFactory.getLogger(TranslatorPlugin.class);
 	@Inject
     private TranslatorConfig config;
@@ -75,18 +78,56 @@ public class TranslatorPlugin extends Plugin
 	private TranslatorAPI api;
 	private ScheduledExecutorService executor;
 
-    private HashMap<String, String> itemsMap;
-    private HashMap<String, String> npcMap;
-    private HashMap<String, String> objectMap;
-    private HashMap<String, String> dialogueMap;
+    private HashMap<String, String> itemsMap = new HashMap<>();
+    private HashMap<String, String> npcMap = new HashMap<>();
+    private HashMap<String, String> objectMap = new HashMap<>();
+    private HashMap<String, String> dialogueMap = new HashMap<>();
     private final HashSet<String> dialoguesToSend = new HashSet<String>();
     private Widget prevTickWidget;
     private Actor actor;
+	private final Path cacheDir = RuneLite.RUNELITE_DIR.toPath()
+		.resolve("translator");;
 
+	private void loadTranslationFile(String lang, String type) {
+		executor.execute(() -> {
+			Path outpath =  cacheDir.resolve(String.format("%s.txt", type));
+			try {
+				String url = String.format(
+					"https://raw.githubusercontent.com/iolave/osrs-translations/refs/heads/master/%s/%s.txt",
+					lang,
+					type
+				);
+				InputStream in = URI.create(url).toURL().openStream();
+				Files.copy(in, outpath, StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException e) {
+				log.error("failed to download {} translation for {}", lang, type, e);
+				return;
+			}
+
+			try {
+				switch (type) {
+					case "dialogue": dialogueMap = parseDialogue(outpath); break;
+					case "npc": npcMap = parse(outpath); break;
+					case "items": itemsMap = parse(outpath); break;
+					case "object": objectMap = parse(outpath); break;
+					default:
+						log.warn("file type {} not supported", type);
+						break;
+				}
+			} catch (Exception e) {
+				log.error("failed to load {} translation for {}", lang, type, e);
+			}
+		});
+	}
 
     @Override
     protected void startUp() throws Exception {
 		executor = Executors.newSingleThreadScheduledExecutor();
+		Files.createDirectories(cacheDir);
+		loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "dialogue");
+		loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "npc");
+		loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "items");
+		loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "object");
 
 		if (config.enableTextCapture()) {
 			executor.scheduleAtFixedRate(
@@ -96,8 +137,6 @@ public class TranslatorPlugin extends Plugin
 				TimeUnit.MINUTES
 			);
 		}
-
-        updateLanguage();
     }
 
 	@Override
@@ -107,8 +146,15 @@ public class TranslatorPlugin extends Plugin
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event) {
-		if (event.getGroup().equals("translator")) {
-			updateLanguage();
+		if (!event.getGroup().equals("translator")) {
+			return;
+		}
+
+		if (event.getKey().equals("SelectLanguage")) {
+			loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "dialogue");
+			loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "npc");
+			loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "items");
+			loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "object");
 		}
 
 		if (event.getKey().equals("enableOSRSTextCollection")) {
@@ -125,48 +171,33 @@ public class TranslatorPlugin extends Plugin
 		}
 	}
 
-    public HashMap<String, String> parseDialogue(String filepath) {
-        HashMap<String, String> words = new HashMap<String, String>();
+    public HashMap<String, String> parseDialogue(Path path) throws Exception {
+        HashMap<String, String> words = new HashMap<>();
+		InputStream in = Files.newInputStream(path);
+		BufferedReader br = new BufferedReader(new InputStreamReader(in));
+		String line;
+		while ((line = br.readLine()) != null) {
+			String[] temp = line.split(";");
+			if (temp.length > 1) {
+				words.put(temp[0], temp[1]);
+			}
+		}
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream(filepath)))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] temp = line.split(";");
-                if (temp.length > 1) {
-                    words.put(temp[0], temp[1]);
-                }
-            }
-            return words;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+		return words;
     }
 
-    public HashMap<String, String> parse(String filepath) {
-        HashMap<String, String> words = new HashMap<String, String>();
-
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream(filepath)))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] temp = line.split(",");
-                if (temp.length > 2) {
-                    words.put(temp[0], temp[2]);
-                }
-            }
-            return words;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private void updateLanguage()
-    {
-        itemsMap = parse("/"+ config.selectLanguage() +"_items.txt");
-        npcMap = parse("/"+ config.selectLanguage() +"_npc.txt");
-        objectMap = parse("/"+ config.selectLanguage() +"_object.txt");
-        dialogueMap = parseDialogue("/"+ config.selectLanguage() +"_dialogue.txt");
+    public HashMap<String, String> parse(Path path) throws Exception {
+		HashMap<String, String> words = new HashMap<>();
+		InputStream in = Files.newInputStream(path);
+		BufferedReader br = new BufferedReader(new InputStreamReader(in));
+		String line;
+		while ((line = br.readLine()) != null) {
+			String[] temp = line.split(",");
+            if (temp.length > 2) {
+            	words.put(temp[0], temp[2]);
+			}
+		}
+		return words;
     }
 
     @Subscribe
@@ -318,7 +349,7 @@ public class TranslatorPlugin extends Plugin
 		if (!config.translateWidgets()) {
 			return;
 		}
-		
+
         Widget widget;
         if (client.getWidget(ComponentID.DIALOG_NPC_TEXT) != null) {
             widget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);

@@ -32,11 +32,14 @@ import net.runelite.client.config.ConfigItem;
 public interface TranslatorConfig extends Config
 {
 	enum Language{
-		spanish,
 		finnish,
-		portuguese,
+		french,
 		german,
+		italian,
+		portuguese,
+		spanish,
 		swedish,
+		dutch
 	}
 
 	@ConfigItem(

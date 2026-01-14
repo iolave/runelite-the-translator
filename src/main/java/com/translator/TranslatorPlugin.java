@@ -50,7 +50,6 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,37 +84,29 @@ public class TranslatorPlugin extends Plugin
     private final HashSet<String> dialoguesToSend = new HashSet<String>();
     private Widget prevTickWidget;
     private Actor actor;
-	private final Path cacheDir = RuneLite.RUNELITE_DIR.toPath()
-		.resolve("translator");;
 
-	private void loadTranslationFile(String lang, String type) {
+	private void loadTranslation(
+		TranslatorAPI.TranslationFileType type,
+		TranslatorConfig.Language lang
+	) {
 		executor.execute(() -> {
-			Path outpath =  cacheDir.resolve(String.format("%s.txt", type));
-			try {
-				String url = String.format(
-					"https://raw.githubusercontent.com/iolave/osrs-translations/refs/heads/master/%s/%s.txt",
-					lang,
-					type
-				);
-				InputStream in = URI.create(url).toURL().openStream();
-				Files.copy(in, outpath, StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				log.error("failed to download {} translation for {}", lang, type, e);
-				return;
-			}
-
 			try {
 				switch (type) {
-					case "dialogue": dialogueMap = parseDialogue(outpath); break;
-					case "npc": npcMap = parse(outpath); break;
-					case "items": itemsMap = parse(outpath); break;
-					case "object": objectMap = parse(outpath); break;
-					default:
-						log.warn("file type {} not supported", type);
+					case dialogue:
+						dialogueMap = api.getTranslationMap(type, lang);
+						break;
+					case npc:
+						npcMap = api.getTranslationMap(type, lang);
+						break;
+					case object:
+						objectMap = api.getTranslationMap(type, lang);
+						break;
+					case items:
+						itemsMap = api.getTranslationMap(type, lang);
 						break;
 				}
 			} catch (Exception e) {
-				log.error("failed to load {} translation for {}", lang, type, e);
+				log.error("failed to load translation '{}:{}'", type, lang, e);
 			}
 		});
 	}
@@ -123,11 +114,10 @@ public class TranslatorPlugin extends Plugin
     @Override
     protected void startUp() throws Exception {
 		executor = Executors.newSingleThreadScheduledExecutor();
-		Files.createDirectories(cacheDir);
-		loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "dialogue");
-		loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "npc");
-		loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "items");
-		loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "object");
+		loadTranslation(TranslatorAPI.TranslationFileType.dialogue, config.selectLanguage());
+		loadTranslation(TranslatorAPI.TranslationFileType.npc, config.selectLanguage());
+		loadTranslation(TranslatorAPI.TranslationFileType.items, config.selectLanguage());
+		loadTranslation(TranslatorAPI.TranslationFileType.object, config.selectLanguage());
 
 		if (config.enableTextCapture()) {
 			executor.scheduleAtFixedRate(
@@ -151,10 +141,10 @@ public class TranslatorPlugin extends Plugin
 		}
 
 		if (event.getKey().equals("SelectLanguage")) {
-			loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "dialogue");
-			loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "npc");
-			loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "items");
-			loadTranslationFile(config.selectLanguage().toString().toLowerCase(), "object");
+			loadTranslation(TranslatorAPI.TranslationFileType.dialogue, config.selectLanguage());
+			loadTranslation(TranslatorAPI.TranslationFileType.npc, config.selectLanguage());
+			loadTranslation(TranslatorAPI.TranslationFileType.items, config.selectLanguage());
+			loadTranslation(TranslatorAPI.TranslationFileType.object, config.selectLanguage());
 		}
 
 		if (event.getKey().equals("enableOSRSTextCollection")) {
@@ -170,35 +160,6 @@ public class TranslatorPlugin extends Plugin
 			}
 		}
 	}
-
-    public HashMap<String, String> parseDialogue(Path path) throws Exception {
-        HashMap<String, String> words = new HashMap<>();
-		InputStream in = Files.newInputStream(path);
-		BufferedReader br = new BufferedReader(new InputStreamReader(in));
-		String line;
-		while ((line = br.readLine()) != null) {
-			String[] temp = line.split(";");
-			if (temp.length > 1) {
-				words.put(temp[0], temp[1]);
-			}
-		}
-
-		return words;
-    }
-
-    public HashMap<String, String> parse(Path path) throws Exception {
-		HashMap<String, String> words = new HashMap<>();
-		InputStream in = Files.newInputStream(path);
-		BufferedReader br = new BufferedReader(new InputStreamReader(in));
-		String line;
-		while ((line = br.readLine()) != null) {
-			String[] temp = line.split(",");
-            if (temp.length > 2) {
-            	words.put(temp[0], temp[2]);
-			}
-		}
-		return words;
-    }
 
     @Subscribe
     public void onMenuOpened(MenuOpened event)

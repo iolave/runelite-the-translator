@@ -31,7 +31,7 @@ import net.runelite.client.config.ConfigItem;
 @ConfigGroup("translator")
 public interface TranslatorConfig extends Config
 {
-	enum SelectLanguage{
+	enum Language{
 		spanish,
 		finnish,
 		portuguese,
@@ -45,8 +45,8 @@ public interface TranslatorConfig extends Config
 		description = "Select target language",
 		position = 1
 	)
-	default SelectLanguage selectLanguage() {
-		return SelectLanguage.spanish;
+	default Language selectLanguage() {
+		return Language.spanish;
 	}
 
 	@ConfigItem(

@@ -11,7 +11,7 @@ A Runelite plugin that translates Old School RuneScape in-game text to other lan
     *   Menus and options
 *   Supports Dutch, Finnish, French, German, Italian, Portuguese, Spanish, and Swedish.
 *   Dialogue collection to improve translations (Opt-in).
-*   **Dynamic Translation Loading**: Translation files are downloaded dynamically from the [iolave/osrs-translations](github.com/iolave/osrs-translations) repo when needed, ensuring you always have the most up-to-date translations without requiring plugin updates.
+*   **Dynamic Translation Loading**: Translation files are downloaded dynamically from the [iolave/osrs-translations](https://github.com/iolave/osrs-translations) repo when needed, ensuring you always have the most up-to-date translations without requiring plugin updates.
 
 ## Installation
 
@@ -38,7 +38,7 @@ You can contribute to this project by enabling the "Enable text capture" option 
 
 ## Architecture
 
-The plugin uses the [iolave/runelite-translator-api](github.com/iolave/runelite-translator-api) in order to collect dialogues and translate them. It also uses the [iolave/osrs-translations](github.com/iolave/osrs-translations) repo in order to download the latest translations.
+The plugin uses the [iolave/runelite-translator-api](https://github.com/iolave/runelite-translator-api) in order to collect dialogues and translate them. It also uses the [iolave/osrs-translations](https://github.com/iolave/osrs-translations) repo in order to download the latest translations.
 
 ![Architecture](https://raw.githubusercontent.com/iolave/runelite-the-translator/master/resources/architecture.png)
 

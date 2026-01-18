@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Renamed `SelectLanguage` enum to `Language`.
+- TranslatorAPI now uses the `/api/v1/data-collection` endpoint to collect dialogues.
 
 ## [v1.2.0] - 2026-01-14
 

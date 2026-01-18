@@ -25,17 +25,12 @@
 package com.translator;
 
 import com.google.inject.Provides;
-import net.runelite.api.Actor;
-import net.runelite.api.Client;
-import net.runelite.api.MenuAction;
-import net.runelite.api.MenuEntry;
+import net.runelite.api.*;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.ItemComposition;
-import net.runelite.client.RuneLite;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -48,8 +43,6 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import java.io.*;
 import java.net.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,8 +55,7 @@ import java.util.concurrent.TimeUnit;
         description = "translate npc, items, objects and dialogue",
         tags = {"actions"}
 )
-public class TranslatorPlugin extends Plugin
-{
+public class TranslatorPlugin extends Plugin {
 	private static final Logger log = LoggerFactory.getLogger(TranslatorPlugin.class);
 	@Inject
     private TranslatorConfig config;
@@ -81,7 +73,6 @@ public class TranslatorPlugin extends Plugin
     private HashMap<String, String> npcMap = new HashMap<>();
     private HashMap<String, String> objectMap = new HashMap<>();
     private HashMap<String, String> dialogueMap = new HashMap<>();
-    private final HashSet<String> dialoguesToSend = new HashSet<String>();
     private Widget prevTickWidget;
     private Actor actor;
 
@@ -112,7 +103,7 @@ public class TranslatorPlugin extends Plugin
 	}
 
     @Override
-    protected void startUp() throws Exception {
+    protected void startUp() {
 		executor = Executors.newSingleThreadScheduledExecutor();
 		loadTranslation(TranslatorAPI.TranslationFileType.dialogue, config.selectLanguage());
 		loadTranslation(TranslatorAPI.TranslationFileType.npc, config.selectLanguage());
@@ -297,7 +288,10 @@ public class TranslatorPlugin extends Plugin
             }
 			optionText = optionText.replace("<br>", " ");
             if (shouldSetDialogues) {
-                dialoguesToSend.add(optionText);
+				api.collectGameTextData(
+					TranslatorAPI.TranslationFileType.dialogue,
+					optionText
+				);
 			}
 
 			if (dialogueMap.get(optionText) != null) {
@@ -336,7 +330,10 @@ public class TranslatorPlugin extends Plugin
         }
         prevTickWidget = widget;
 		if (shouldSetDialogues) {
-			dialoguesToSend.add(text);
+			api.collectGameTextData(
+				TranslatorAPI.TranslationFileType.dialogue,
+				text
+			);
 		}
         if (dialogueMap.get(text) != null) {
             widget.setText(dialogueMap.get(text));
@@ -345,15 +342,9 @@ public class TranslatorPlugin extends Plugin
 
 	private void collectGameTexts() {
 		try {
-			if (dialoguesToSend.isEmpty()) {
-				log.debug("no dialogues to send");
-			} else {
-				log.debug("sending dialogues: {}", dialoguesToSend);
-				api.sendDialogues(dialoguesToSend);
-				dialoguesToSend.clear();
-			}
+			api.sendCollectedGameText();
 		} catch (Exception e) {
-			log.error("failed to send dialogues to backend", e);
+			log.error("failed to send game text to backend", e);
 		}
 	}
 }

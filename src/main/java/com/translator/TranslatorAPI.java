@@ -1,9 +1,7 @@
 package com.translator;
 
-import com.google.gson.JsonArray;
+import com.google.gson.*;
 import okhttp3.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,42 +19,69 @@ class TranslatorAPI {
 		dialogue,
 		npc,
 		items,
-		object
+		item, // will replace 'items'
+		object,
+		menu_entry_option
 	}
 
-	private static final Logger log = LoggerFactory.getLogger(TranslatorAPI.class);
 	/**
 	 * An HTTP Client to access the Google Translate API.
 	 */
 	@Inject
 	private OkHttpClient client;
+	private final HashSet<String> collectedGameText = new HashSet<>();
+	private final String baseURL = "https://runelite-translator-api-production.up.railway.app";
 
 	/**
 	 * Send collected dialogues to the runelite-translator-api.
 	 *
 	 * @param arr array of dialogues
 	 */
-	void sendDialogues(HashSet<String> arr) throws Exception {
-		JsonArray body = new JsonArray();
-		for (String d : arr) {
-			body.add(d);
+	void sendCollectedGameText() throws Exception {
+		if (collectedGameText.isEmpty()) {
+			return;
 		}
 
-		MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+		JsonArray body = new JsonArray();
+		for (String gt : collectedGameText) {
+			String[] gtSplitted = gt.split(";");
+			if (gtSplitted.length < 2) {
+				continue;
+			}
+			JsonPrimitive type = new JsonPrimitive(gtSplitted[0]);
+			JsonElement text = new JsonPrimitive(gt.replace(String.format("%s;",gtSplitted[0]), ""));
+
+			JsonObject obj = new JsonObject();
+			obj.add("type", type);
+			obj.add("text", text);
+
+			body.add(obj);
+		}
+
+		MediaType JSON = MediaType.parse("application/json");
 		RequestBody rb = RequestBody.create(JSON, body.toString());
 
 		Request req = new Request.Builder()
 			.header("Content-Type", "application/json")
 			.method("POST", rb)
-			.url("https://runelite-translator-api-production.up.railway.app/api/v1/dialogues")
+			.url(String.format("%s/api/v1/data-collection", baseURL))
 			.build();
 
 		Response response = client.newCall(req).execute();
 		if (response.code() != 200) {
 			response.close();
-			throw new Exception("failed to send dialogues, got status " + response.code());
+			throw new Exception("failed to send collected game text, got status " + response.code());
 		}
 		response.close();
+
+		collectedGameText.clear();
+	}
+
+	void collectGameTextData(
+		TranslationFileType type,
+		String text
+	) {
+		collectedGameText.add(String.format("%s;%s", type, text));
 	}
 
 	HashMap<String, String> getTranslationMap(
@@ -118,5 +143,3 @@ class TranslatorAPI {
 		);
 	}
 }
-
-

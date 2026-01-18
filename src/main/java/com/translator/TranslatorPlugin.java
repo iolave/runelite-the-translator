@@ -68,48 +68,34 @@ public class TranslatorPlugin extends Plugin {
 	private TranslatorAPI api;
 	private ScheduledExecutorService executor;
 
-    private HashMap<String, String> itemsMap = new HashMap<>();
-    private HashMap<String, String> npcMap = new HashMap<>();
-    private HashMap<String, String> objectMap = new HashMap<>();
-    private HashMap<String, String> dialogueMap = new HashMap<>();
+	private HashMap<TranslatorAPI.TranslationFileType, HashMap<String, String>> maps = new HashMap<>();
+
     private Widget prevTickWidget;
     private Actor actor;
 	private final Long dataCollectionPeriod = 5L;
 	private final TimeUnit dataCollectionTU = TimeUnit.MINUTES;
 
-	private void loadTranslation(
-		TranslatorAPI.TranslationFileType type,
-		TranslatorConfig.Language lang
-	) {
+	private void loadTranslation(TranslatorConfig.Language lang) {
 		executor.execute(() -> {
-			try {
-				switch (type) {
-					case dialogue:
-						dialogueMap = api.getTranslationMap(type, lang);
-						break;
-					case npc:
-						npcMap = api.getTranslationMap(type, lang);
-						break;
-					case object:
-						objectMap = api.getTranslationMap(type, lang);
-						break;
-					case items:
-						itemsMap = api.getTranslationMap(type, lang);
-						break;
+				for (TranslatorAPI.TranslationFileType t : TranslatorAPI.TranslationFileType.values()) {
+					try {
+						maps.put(t, api.getTranslationMap(t, lang));
+					} catch (Exception e) {
+						log.error("failed to load translation '{}:{}'", t, lang, e);
+					}
 				}
-			} catch (Exception e) {
-				log.error("failed to load translation '{}:{}'", type, lang, e);
-			}
 		});
 	}
 
     @Override
     protected void startUp() {
 		executor = Executors.newSingleThreadScheduledExecutor();
-		loadTranslation(TranslatorAPI.TranslationFileType.dialogue, config.selectLanguage());
-		loadTranslation(TranslatorAPI.TranslationFileType.npc, config.selectLanguage());
-		loadTranslation(TranslatorAPI.TranslationFileType.items, config.selectLanguage());
-		loadTranslation(TranslatorAPI.TranslationFileType.object, config.selectLanguage());
+
+		for (TranslatorAPI.TranslationFileType t : TranslatorAPI.TranslationFileType.values()) {
+			maps.put(t, new HashMap<>());
+		}
+
+		loadTranslation(config.selectLanguage());
 
 		if (config.enableTextCapture()) {
 			executor.scheduleAtFixedRate(
@@ -133,10 +119,7 @@ public class TranslatorPlugin extends Plugin {
 		}
 
 		if (event.getKey().equals("SelectLanguage")) {
-			loadTranslation(TranslatorAPI.TranslationFileType.dialogue, config.selectLanguage());
-			loadTranslation(TranslatorAPI.TranslationFileType.npc, config.selectLanguage());
-			loadTranslation(TranslatorAPI.TranslationFileType.items, config.selectLanguage());
-			loadTranslation(TranslatorAPI.TranslationFileType.object, config.selectLanguage());
+			loadTranslation(config.selectLanguage());
 		}
 
 		if (event.getKey().equals("enableOSRSTextCollection")) {
@@ -163,15 +146,15 @@ public class TranslatorPlugin extends Plugin {
             MenuEntry entry = newMenuEntries[idx];
             //item
             if (entry.getItemId() > 0) {
-                translateMenuEntrys(this.itemsMap, entry, entry.getItemId());
+                translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getItemId());
             }
             //equipped item
             if (entry.getWidget() != null && entry.getWidget().getId() <= 25362457 && entry.getWidget().getId() >= 25362447) {
-                translateMenuEntrys(this.itemsMap, entry, entry.getWidget().getChild(1).getItemId());
+                translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getWidget().getChild(1).getItemId());
             }
             //ground items
             else if (entry.getType() == MenuAction.EXAMINE_ITEM_GROUND | entry.getType() == MenuAction.GROUND_ITEM_THIRD_OPTION ) {
-                translateMenuEntrys(this.itemsMap, entry, entry.getIdentifier());
+                translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getIdentifier());
             }
             //not item
             else if (entry.getItemId() == -1) {
@@ -180,20 +163,20 @@ public class TranslatorPlugin extends Plugin {
                 }
                 //npc
                 else if (entry.getNpc() != null) {
-                    translateMenuEntrys(this.npcMap, entry, entry.getNpc().getId());
+					translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getNpc().getId());
                 }
                 //object
                 else if (entry.getIdentifier() > 0 & entry.getType() != MenuAction.CC_OP & entry.getType() != MenuAction.RUNELITE & entry.getType() != MenuAction.WALK && entry.getType() != MenuAction.CC_OP_LOW_PRIORITY) {
-                    translateMenuEntrys(this.objectMap, entry, entry.getIdentifier());
+                    translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.object), entry, entry.getIdentifier());
                 }
             }
         }
         client.setMenuEntries(newMenuEntries);
     }
 
-    public String notedItemsCheck(HashMap<String, String> words, Integer id){
+    private String notedItemsCheck(HashMap<String, String> words, Integer id){
         String translated = null;
-        if (words == itemsMap) {
+        if (words == maps.get(TranslatorAPI.TranslationFileType.item)) {
             final ItemComposition itemComp = itemManager.getItemComposition(id);
             if (itemComp.getNote() == 799) {
                 translated = words.get(String.valueOf(itemComp.getLinkedNoteId()));
@@ -295,8 +278,8 @@ public class TranslatorPlugin extends Plugin {
 				);
 			}
 
-			if (dialogueMap.get(optionText) != null) {
-				widget.setText(dialogueMap.get(optionText));
+			if (maps.get(TranslatorAPI.TranslationFileType.dialogue).get(optionText) != null) {
+				widget.setText(maps.get(TranslatorAPI.TranslationFileType.dialogue).get(optionText));
 			}
 		}
 	}
@@ -336,8 +319,8 @@ public class TranslatorPlugin extends Plugin {
 				text
 			);
 		}
-        if (dialogueMap.get(text) != null) {
-            widget.setText(dialogueMap.get(text));
+        if (maps.get(TranslatorAPI.TranslationFileType.dialogue).get(text) != null) {
+            widget.setText(maps.get(TranslatorAPI.TranslationFileType.dialogue).get(text));
         }
     }
 

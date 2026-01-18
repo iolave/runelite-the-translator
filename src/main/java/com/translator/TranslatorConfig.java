@@ -83,4 +83,14 @@ public interface TranslatorConfig extends Config
 	default boolean translateWidgets() {
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "translateMenuEntries",
+		name = "Translate menu entries",
+		description = "Translate menu entries",
+		position = 5
+	)
+	default boolean translateMenuEntries() {
+		return true;
+	}
 }

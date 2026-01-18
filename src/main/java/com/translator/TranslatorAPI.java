@@ -31,6 +31,7 @@ class TranslatorAPI {
 	private OkHttpClient client;
 	private final HashSet<String> collectedGameText = new HashSet<>();
 	private final String baseURL = "https://runelite-translator-api-production.up.railway.app";
+	// private final String baseURL = "http://localhost:8080";
 
 	/**
 	 * Send collected dialogues to the runelite-translator-api.
@@ -58,7 +59,7 @@ class TranslatorAPI {
 			body.add(obj);
 		}
 
-		MediaType JSON = MediaType.parse("application/json");
+		MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 		RequestBody rb = RequestBody.create(JSON, body.toString());
 
 		Request req = new Request.Builder()
@@ -98,32 +99,15 @@ class TranslatorAPI {
 			throw new Exception(msg, e);
 		}
 
-		if (type == TranslationFileType.dialogue) {
-			return parseDialogue(in);
-		}
-
-		return parse(in);
+		return parseCSV(in, ";");
 	}
 
-	private HashMap<String, String> parse(InputStream in) throws Exception {
+	private HashMap<String, String> parseCSV(InputStream in, String delimiter) throws Exception {
 		HashMap<String, String> words = new HashMap<>();
 		BufferedReader br = new BufferedReader(new InputStreamReader(in));
 		String line;
 		while ((line = br.readLine()) != null) {
-			String[] temp = line.split(",");
-			if (temp.length > 2) {
-				words.put(temp[0], temp[2]);
-			}
-		}
-		return words;
-	}
-
-	private HashMap<String, String> parseDialogue(InputStream in) throws Exception {
-		HashMap<String, String> words = new HashMap<>();
-		BufferedReader br = new BufferedReader(new InputStreamReader(in));
-		String line;
-		while ((line = br.readLine()) != null) {
-			String[] temp = line.split(";");
+			String[] temp = line.split(delimiter);
 			if (temp.length > 1) {
 				words.put(temp[0], temp[1]);
 			}

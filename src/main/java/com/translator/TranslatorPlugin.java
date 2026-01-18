@@ -137,41 +137,42 @@ public class TranslatorPlugin extends Plugin {
 	}
 
     @Subscribe
-    public void onMenuOpened(MenuOpened event)
-    {
-        MenuEntry[] menuEntries = client.getMenuEntries();
-        MenuEntry[] newMenuEntries = Arrays.copyOf(menuEntries, menuEntries.length);
+    public void onMenuOpened(MenuOpened event) {
+		if (config.translateMenuEntries()) {
+			MenuEntry[] entries = event.getMenuEntries();
+			for(MenuEntry entry:entries) {
+				// NEW TRANSLATION
+				translateMenuEntry(entry);
 
-        for (int idx = 1; idx < newMenuEntries.length; idx++) {
-            MenuEntry entry = newMenuEntries[idx];
-            //item
-            if (entry.getItemId() > 0) {
-                translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getItemId());
-            }
-            //equipped item
-            if (entry.getWidget() != null && entry.getWidget().getId() <= 25362457 && entry.getWidget().getId() >= 25362447) {
-                translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getWidget().getChild(1).getItemId());
-            }
-            //ground items
-            else if (entry.getType() == MenuAction.EXAMINE_ITEM_GROUND | entry.getType() == MenuAction.GROUND_ITEM_THIRD_OPTION ) {
-                translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getIdentifier());
-            }
-            //not item
-            else if (entry.getItemId() == -1) {
-                //player
-                if (entry.getPlayer() != null) {
-                }
-                //npc
-                else if (entry.getNpc() != null) {
-					translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getNpc().getId());
-                }
-                //object
-                else if (entry.getIdentifier() > 0 & entry.getType() != MenuAction.CC_OP & entry.getType() != MenuAction.RUNELITE & entry.getType() != MenuAction.WALK && entry.getType() != MenuAction.CC_OP_LOW_PRIORITY) {
-                    translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.object), entry, entry.getIdentifier());
-                }
-            }
-        }
-        client.setMenuEntries(newMenuEntries);
+				// OLD TRANSLATION
+				//item
+				if (entry.getItemId() > 0) {
+					translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getItemId());
+				}
+				//equipped item
+				if (entry.getWidget() != null && entry.getWidget().getId() <= 25362457 && entry.getWidget().getId() >= 25362447) {
+					translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getWidget().getChild(1).getItemId());
+				}
+				//ground items
+				else if (entry.getType() == MenuAction.EXAMINE_ITEM_GROUND | entry.getType() == MenuAction.GROUND_ITEM_THIRD_OPTION ) {
+					translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getIdentifier());
+				}
+				//not item
+				else if (entry.getItemId() == -1) {
+					//player
+					if (entry.getPlayer() != null) {
+					}
+					//npc
+					else if (entry.getNpc() != null) {
+						translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getNpc().getId());
+					}
+					//object
+					else if (entry.getIdentifier() > 0 & entry.getType() != MenuAction.CC_OP & entry.getType() != MenuAction.RUNELITE & entry.getType() != MenuAction.WALK && entry.getType() != MenuAction.CC_OP_LOW_PRIORITY) {
+						translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.object), entry, entry.getIdentifier());
+					}
+				}
+			}
+		}
     }
 
     private String notedItemsCheck(HashMap<String, String> words, Integer id){
@@ -185,7 +186,7 @@ public class TranslatorPlugin extends Plugin {
         return translated;
     }
 
-    public void translateMenuEntrys(HashMap<String, String> words, MenuEntry menuEntry, Integer id){
+    private void translateMenuEntrys(HashMap<String, String> words, MenuEntry menuEntry, Integer id){
         String target = menuEntry.getTarget();
 
         if (target.length() > 0) {
@@ -329,6 +330,28 @@ public class TranslatorPlugin extends Plugin {
 			api.sendCollectedGameText();
 		} catch (Exception e) {
 			log.error("failed to send game text to backend", e);
+		}
+	}
+
+	private void translateMenuEntry(MenuEntry entry) {
+		String opt = entry.getOption();
+
+		// if data collection is enabled then add to the set:
+		// - the entry option
+		if (config.enableTextCapture()) {
+			api.collectGameTextData(
+				TranslatorAPI.TranslationFileType.menu_entry_option,
+				opt
+			);
+		}
+		// translate menu entry options
+		if (opt != null && !opt.isEmpty()) {
+			String translated = maps.get(TranslatorAPI.TranslationFileType.menu_entry_option).get(opt);
+			if (translated == null) {
+				return;
+			}
+
+			entry.setOption(translated);
 		}
 	}
 }

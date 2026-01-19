@@ -26,9 +26,7 @@ package com.translator;
 
 import com.google.inject.Provides;
 import net.runelite.api.*;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.InteractingChanged;
-import net.runelite.api.events.MenuOpened;
+import net.runelite.api.events.*;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.config.ConfigManager;
@@ -137,43 +135,7 @@ public class TranslatorPlugin extends Plugin {
 	}
 
     @Subscribe
-    public void onMenuOpened(MenuOpened event) {
-		if (config.translateMenuEntries()) {
-			MenuEntry[] entries = event.getMenuEntries();
-			for(MenuEntry entry:entries) {
-				// NEW TRANSLATION
-				translateMenuEntry(entry);
-
-				// OLD TRANSLATION
-				//item
-				if (entry.getItemId() > 0) {
-					translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getItemId());
-				}
-				//equipped item
-				if (entry.getWidget() != null && entry.getWidget().getId() <= 25362457 && entry.getWidget().getId() >= 25362447) {
-					translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getWidget().getChild(1).getItemId());
-				}
-				//ground items
-				else if (entry.getType() == MenuAction.EXAMINE_ITEM_GROUND | entry.getType() == MenuAction.GROUND_ITEM_THIRD_OPTION ) {
-					translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getIdentifier());
-				}
-				//not item
-				else if (entry.getItemId() == -1) {
-					//player
-					if (entry.getPlayer() != null) {
-					}
-					//npc
-					else if (entry.getNpc() != null) {
-						translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getNpc().getId());
-					}
-					//object
-					else if (entry.getIdentifier() > 0 & entry.getType() != MenuAction.CC_OP & entry.getType() != MenuAction.RUNELITE & entry.getType() != MenuAction.WALK && entry.getType() != MenuAction.CC_OP_LOW_PRIORITY) {
-						translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.object), entry, entry.getIdentifier());
-					}
-				}
-			}
-		}
-    }
+    public void onMenuOpened(MenuOpened event) {}
 
     private String notedItemsCheck(HashMap<String, String> words, Integer id){
         String translated = null;
@@ -352,6 +314,42 @@ public class TranslatorPlugin extends Plugin {
 			}
 
 			entry.setOption(translated);
+		}
+
+		// OLD TRANSLATION
+		//item
+		if (entry.getItemId() > 0) {
+			translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getItemId());
+		}
+		//equipped item
+		if (entry.getWidget() != null && entry.getWidget().getId() <= 25362457 && entry.getWidget().getId() >= 25362447) {
+			translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getWidget().getChild(1).getItemId());
+		}
+		//ground items
+		else if (entry.getType() == MenuAction.EXAMINE_ITEM_GROUND | entry.getType() == MenuAction.GROUND_ITEM_THIRD_OPTION ) {
+			translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getIdentifier());
+		}
+		//not item
+		else if (entry.getItemId() == -1) {
+			//player
+			if (entry.getPlayer() != null) {
+			}
+			//npc
+			else if (entry.getNpc() != null) {
+				translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.npc), entry, entry.getNpc().getId());
+			}
+			//object
+			else if (entry.getIdentifier() > 0 & entry.getType() != MenuAction.CC_OP & entry.getType() != MenuAction.RUNELITE & entry.getType() != MenuAction.WALK && entry.getType() != MenuAction.CC_OP_LOW_PRIORITY) {
+				translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.object), entry, entry.getIdentifier());
+			}
+		}
+	}
+
+	@Subscribe
+	public void onMenuEntryAdded(MenuEntryAdded event) {
+		if (config.translateMenuEntries()) {
+			MenuEntry entry = event.getMenuEntry();
+			translateMenuEntry(entry);
 		}
 	}
 }

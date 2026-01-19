@@ -18,8 +18,7 @@ class TranslatorAPI {
 	enum TranslationFileType {
 		dialogue,
 		npc,
-		items,
-		item, // will replace 'items'
+		item,
 		object,
 		menu_entry_option
 	}

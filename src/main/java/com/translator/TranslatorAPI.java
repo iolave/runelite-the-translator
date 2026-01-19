@@ -2,12 +2,12 @@ package com.translator;
 
 import com.google.gson.*;
 import okhttp3.*;
+import org.apache.commons.text.StringEscapeUtils;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import javax.inject.Inject;
@@ -124,5 +124,53 @@ class TranslatorAPI {
 			lang,
 			type
 		);
+	}
+
+	public String translate(
+		TranslatorConfig.Language target,
+		String text
+	) throws Exception {
+		String to = null;
+		switch (target) {
+			case dutch: to = "nl"; break;
+			case french: to = "fr"; break;
+			case german: to = "de"; break;
+			case finnish: to = "fi"; break;
+			case italian: to = "it"; break;
+			case spanish: to = "es"; break;
+			case swedish: to = "sv"; break;
+			case portuguese: to = "pt"; break;
+			// ADD MISSING SUPPORTED LANGUAGES HERE
+			default:
+				throw new Exception("language " + target + " not supported yet");
+		}
+		Request req = new Request.Builder()
+			.method("GET", null)
+			.url(String.format(
+				"https://api.datpmt.com/api/v2/dictionary/translate?from_lang=en&to_lang=%s&string=%s",
+				to,
+				URLEncoder.encode(text,"utf-8")
+			))
+			.build();
+
+		Response response = client.newCall(req).execute();
+		if (response.code() != 200) {
+			response.close();
+			throw new Exception("failed to translate game text, got status " + response.code());
+		}
+
+		ResponseBody body = response.body();
+		if (body == null) {
+			throw new Exception("got null body from translator");
+		}
+
+		String translated =new String(body.bytes(), StandardCharsets.UTF_8);
+		response.close();
+
+		if (translated.startsWith("\"") && translated.endsWith("\"")) {
+			translated = translated.substring(1, translated.length()-1);
+		}
+
+		return StringEscapeUtils.unescapeJava(translated);
 	}
 }

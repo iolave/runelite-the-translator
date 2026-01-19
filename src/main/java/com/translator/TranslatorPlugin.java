@@ -29,6 +29,7 @@ import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -41,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import java.io.*;
 import java.net.*;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,6 +65,8 @@ public class TranslatorPlugin extends Plugin {
 	@Inject
 	private TranslatorAPI api;
 	private ScheduledExecutorService executor;
+	@Inject
+	private ClientThread clientThread;
 
 	private HashMap<TranslatorAPI.TranslationFileType, HashMap<String, String>> maps = new HashMap<>();
 
@@ -351,5 +353,56 @@ public class TranslatorPlugin extends Plugin {
 			MenuEntry entry = event.getMenuEntry();
 			translateMenuEntry(entry);
 		}
+
+	}
+	@Subscribe
+	public void onChatMessage(ChatMessage event) {
+		ChatMessageType type = event.getType();
+		String msg = event.getMessage();
+		String sender = event.getSender();
+		String name = event.getName();
+		if (msg == null) {
+			return;
+		}
+
+		if (!config.translateChatBoxRT()) {
+			return;
+		}
+		if (name != null && name.equals("translator")) {
+			return;
+		}
+
+
+		new Thread(() -> {
+			try {
+				String translated = api.translate(config.selectLanguage(), msg);
+				clientThread.invokeLater(() -> {
+					if (name == null || name.isEmpty()) {
+						client.addChatMessage(
+							ChatMessageType.GAMEMESSAGE,
+							"translator",
+							String.format("[translator] %s", translated),
+							sender
+						);
+					} else {
+						client.addChatMessage(
+							ChatMessageType.GAMEMESSAGE,
+							"translator",
+							String.format("[translator] (%s) %s", event.getName(), translated),
+							sender
+						);
+					}
+
+				});
+			} catch (Exception e) {
+				client.addChatMessage(
+					type,
+					"translator",
+					"error: failed to translate in real time",
+					"translator"
+				);
+				log.error("failed to translate in real time", e);
+			}
+		}).start();
 	}
 }

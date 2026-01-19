@@ -10,12 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Dialogue translation can now be disabled.
 - Translation files are now loaded dynamically from [iolave/osrs-translations](https://github.com/iolave/osrs-translations).
+- Added real time translation for chat box messages.
 
 ### Changed
 - Renamed `SelectLanguage` enum to `Language`.
 - TranslatorAPI now uses the `/api/v1/data-collection` endpoint to collect dialogues.
 - Translation maps were consolidated into a single map to allow easier implementation of new translation maps.
 - Menu entries are now translated when added to the stack rather than when the menu is opened.
+- Plugin confiuration now have sections.
 
 ## [v1.2.0] - 2026-01-14
 

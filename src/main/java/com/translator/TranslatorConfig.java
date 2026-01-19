@@ -27,10 +27,10 @@ package com.translator;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.ConfigSection;
 
 @ConfigGroup("translator")
-public interface TranslatorConfig extends Config
-{
+public interface TranslatorConfig extends Config {
 	enum Language{
 		finnish,
 		french,
@@ -42,11 +42,19 @@ public interface TranslatorConfig extends Config
 		dutch
 	}
 
+	@ConfigSection(
+		position = 1,
+		name = "General configuration",
+		description = "General plugin configuration"
+	)
+	String generalConfigSection = "generalConfig";
+
 	@ConfigItem(
 		keyName = "SelectLanguage",
 		name = "Language",
 		description = "Select target language",
-		position = 1
+		position = 1,
+		section = generalConfigSection
 	)
 	default Language selectLanguage() {
 		return Language.spanish;
@@ -58,37 +66,67 @@ public interface TranslatorConfig extends Config
 		description = "If enabled, OSRS game texts will be captured in order to improve and have a more complete translation system (dialogues, guides, npc names).\n"+
 			"We highly suggest to enable this option so you can contribute to the plugin.",
 		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or verified by Runelite developers.",
-		position = 2
+		position = 2,
+		section = generalConfigSection
 	)
 	default boolean enableTextCapture() {
 		return false;
 	}
 
-	@ConfigItem(
-		keyName = "translateWidgetsOptions",
-		name = "Translate dialogues options",
-		description = "Translate chatbox dialogues options (messes with quest helper)",
-		position = 3
+	@ConfigSection(
+		position = 2,
+		name = "Chat box translations",
+		description = "Chat box translation options (dialogues, options and messages)"
 	)
-	default boolean translateWidgetsOptions() {
-		return false;
-	}
+	String chatboxTranslations = "chatboxTranslations";
 
 	@ConfigItem(
 		keyName = "translateWidgets",
 		name = "Translate dialogues",
-		description = "Translate chatbox dialogues",
-		position = 4
+		description = "Translate chat box dialogues",
+		position = 1,
+		section = chatboxTranslations
 	)
 	default boolean translateWidgets() {
 		return true;
 	}
 
 	@ConfigItem(
+		keyName = "translateWidgetsOptions",
+		name = "Translate dialogues options",
+		description = "Translate chatbox dialogue options (messes with quest helper)",
+		position = 2,
+		section = chatboxTranslations
+	)
+	default boolean translateWidgetsOptions() {
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "translateChatBoxRT",
+		name = "Translate messages in real time",
+		description = "Translate chat box messages in real time",
+		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or verified by Runelite developers.",
+		position = 3,
+		section = chatboxTranslations
+	)
+	default boolean translateChatBoxRT() {
+		return false;
+	}
+
+	@ConfigSection(
+		position = 3,
+		name = "Pop-up's translations",
+		description = "In-game pop-up's translations (right click menu, quest guides)"
+	)
+	String popupsTranslations = "popupsTranslations";
+
+	@ConfigItem(
 		keyName = "translateMenuEntries",
 		name = "Translate menu entries",
 		description = "Translate menu entries",
-		position = 5
+		position = 1,
+		section = popupsTranslations
 	)
 	default boolean translateMenuEntries() {
 		return true;

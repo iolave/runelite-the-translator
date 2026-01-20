@@ -131,4 +131,15 @@ public interface TranslatorConfig extends Config {
 	default boolean translateMenuEntries() {
 		return true;
 	}
+	@ConfigItem(
+		keyName = "translateQuestGuide",
+		name = "Translate quest guides in real time",
+		description = "Translate quest guide journals in real time",
+		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or verified by Runelite developers.",
+		position = 2,
+		section = popupsTranslations
+	)
+	default boolean translateQuestGuide() {
+		return false;
+	}
 }

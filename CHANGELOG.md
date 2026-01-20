@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Dialogue translation can now be disabled.
 - Translation files are now loaded dynamically from [iolave/osrs-translations](https://github.com/iolave/osrs-translations).
-- Added real time translation for chat box messages.
+- Added real time translation for chat box messages and quest guide journal.
 
 ### Changed
 - Renamed `SelectLanguage` enum to `Language`.

@@ -29,6 +29,7 @@ import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetType;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -46,6 +47,8 @@ import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static net.runelite.api.gameval.InterfaceID.*;
 
 @PluginDescriptor(
         name = "Translator",
@@ -193,6 +196,64 @@ public class TranslatorPlugin extends Plugin {
         }
         actor = event.getTarget();
     }
+
+	void translateWidgetTextRecursively(Widget w) {
+		if (w == null) {
+			log.error("failed to translate widget text, got null widget");
+			return;
+		}
+
+		if (w.getType() == WidgetType.TEXT) {
+			String text = w.getText();
+			if (!text.isEmpty()) {
+				new Thread(() -> {
+					try {
+						String translated = api.translate(config.selectLanguage(), text);
+						clientThread.invokeLater(() -> {
+							w.setText(String.format("%s", translated));
+						});
+					} catch (Exception e) {
+						w.setText(String.format("%s<br>error: failed to translate", text));
+						log.error("failed to translate quest text", e);
+					}
+				}).start();
+			}
+		}
+
+		Widget[] wc = w.getChildren();
+		if (wc != null) {
+			for (Widget wcw : wc) {
+				translateWidgetTextRecursively(wcw);
+			}
+		}
+		wc = w.getDynamicChildren();
+		if (wc != null) {
+			for (Widget wcw : wc) {
+				translateWidgetTextRecursively(wcw);
+			}
+		}
+		wc = w.getNestedChildren();
+		if (wc != null) {
+			for (Widget wcw : wc) {
+				translateWidgetTextRecursively(wcw);
+			}
+		}
+		wc = w.getStaticChildren();
+		if (wc != null) {
+			for (Widget wcw : wc) {
+				translateWidgetTextRecursively(wcw);
+			}
+		}
+	}
+
+	@Subscribe
+	public void onScriptPostFired(ScriptPostFired event) {
+		if (event.getScriptId() == ScriptID.QUEST_UPDATE_LINECOUNT) {
+			if (config.translateQuestGuide()) {
+				translateWidgetTextRecursively(client.getWidget(Questjournal.UNIVERSE));
+			}
+		}
+	}
 
     @Subscribe
     public void onGameTick(GameTick event) {

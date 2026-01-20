@@ -352,6 +352,9 @@ public class TranslatorPlugin extends Plugin {
 			return;
 		}
 
+		if (type == ChatMessageType.DIALOG) {
+			return;
+		}
 
 		new Thread(() -> {
 			try {

@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Menu entries are now translated when added to the stack rather than when the menu is opened.
 - Plugin confiuration now have sections.
 
+### Fixed
+- Dialogues after the first one are now collected correctly.
+
 ## [v1.2.0] - 2026-01-14
 
 ### Added

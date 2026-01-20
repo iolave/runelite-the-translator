@@ -136,9 +136,6 @@ public class TranslatorPlugin extends Plugin {
 		}
 	}
 
-    @Subscribe
-    public void onMenuOpened(MenuOpened event) {}
-
     private String notedItemsCheck(HashMap<String, String> words, Integer id){
         String translated = null;
         if (words == maps.get(TranslatorAPI.TranslationFileType.item)) {
@@ -198,8 +195,7 @@ public class TranslatorPlugin extends Plugin {
     }
 
     @Subscribe
-    public void onGameTick(GameTick event)
-    {
+    public void onGameTick(GameTick event) {
         if (actor != null)
         {
             checkWidgetDialogs();
@@ -222,29 +218,20 @@ public class TranslatorPlugin extends Plugin {
 			return;
 		}
 
-        boolean shouldSetDialogues = false;
-        if (prevTickWidget == null) {
-            shouldSetDialogues = true;
-        } else if (!prevTickWidget.toString().equals(playerOptionsWidget.toString())) {
-            shouldSetDialogues = true;
-        }
-        prevTickWidget = playerOptionsWidget;
-
 		for (Widget widget : optionWidgets) {
             String optionText = widget.getText();
             if (optionText == null) {
                 continue;
             }
 			optionText = optionText.replace("<br>", " ");
-            if (shouldSetDialogues) {
+			String translated = maps.get(TranslatorAPI.TranslationFileType.dialogue).get(optionText);
+            if (translated == null) {
 				api.collectGameTextData(
 					TranslatorAPI.TranslationFileType.dialogue,
 					optionText
 				);
-			}
-
-			if (maps.get(TranslatorAPI.TranslationFileType.dialogue).get(optionText) != null) {
-				widget.setText(maps.get(TranslatorAPI.TranslationFileType.dialogue).get(optionText));
+			} else {
+				widget.setText(translated);
 			}
 		}
 	}
@@ -270,23 +257,16 @@ public class TranslatorPlugin extends Plugin {
             return;
         }
         text = text.replace("<br>", " ");
+		String translated = maps.get(TranslatorAPI.TranslationFileType.dialogue).get(text);
 
-        boolean shouldSetDialogues = false;
-        if (prevTickWidget == null) {
-            shouldSetDialogues = true;
-        } else if (!prevTickWidget.toString().equals(widget.toString())) {
-            shouldSetDialogues = true;
-        }
-        prevTickWidget = widget;
-		if (shouldSetDialogues) {
+		if (translated == null) {
 			api.collectGameTextData(
 				TranslatorAPI.TranslationFileType.dialogue,
 				text
 			);
+		} else {
+			widget.setText(translated);
 		}
-        if (maps.get(TranslatorAPI.TranslationFileType.dialogue).get(text) != null) {
-            widget.setText(maps.get(TranslatorAPI.TranslationFileType.dialogue).get(text));
-        }
     }
 
 	private void collectGameTexts() {

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Dialogues after the first one are now collected correctly.
+- Collected dialogues with player name are now collected with the name repalced by `[PLAYER_NAME]`.
 
 ## [v1.2.0] - 2026-01-14
 

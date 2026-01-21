@@ -265,10 +265,6 @@ public class TranslatorPlugin extends Plugin {
     }
 
 	private void checkWidgetOptionDialogs() {
-		if (!config.translateWidgetsOptions()) {
-			return;
-		}
-
 		Widget playerOptionsWidget = client.getWidget(ComponentID.DIALOG_OPTION_OPTIONS);
         if (playerOptionsWidget == null) {
             return;
@@ -292,16 +288,16 @@ public class TranslatorPlugin extends Plugin {
 					optionText
 				);
 			} else {
+				if (!config.translateWidgetsOptions()) {
+					return;
+				}
+
 				widget.setText(translated);
 			}
 		}
 	}
 
     private void checkWidgetDialogs() {
-		if (!config.translateWidgets()) {
-			return;
-		}
-
         Widget widget;
         if (client.getWidget(ComponentID.DIALOG_NPC_TEXT) != null) {
             widget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
@@ -318,6 +314,11 @@ public class TranslatorPlugin extends Plugin {
             return;
         }
         text = text.replace("<br>", " ");
+		String playerName = client.getLocalPlayer().getName();
+		if (playerName != null) {
+			text = text.replaceAll(playerName, "[PLAYER_NAME]");
+		}
+
 		String translated = maps.get(TranslatorAPI.TranslationFileType.dialogue).get(text);
 
 		if (translated == null) {
@@ -326,6 +327,10 @@ public class TranslatorPlugin extends Plugin {
 				text
 			);
 		} else {
+			if (!config.translateWidgets()) {
+				return;
+			}
+
 			widget.setText(translated);
 		}
     }

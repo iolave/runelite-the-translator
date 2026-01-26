@@ -318,21 +318,34 @@ public class TranslatorPlugin extends Plugin {
 		if (playerName != null) {
 			text = text.replaceAll(playerName, "[PLAYER_NAME]");
 		}
+		String slayAmtAndMonster = "";
+		if (text.startsWith("Your new task is to kill")) {
+			slayAmtAndMonster = text.replace("Your new task is to kill ", "");
+			text = "Your new task is to kill [SLAYER_TASK_AMT_AND_MONSTER]";
+		}
 
 		String translated = maps.get(TranslatorAPI.TranslationFileType.dialogue).get(text);
-
 		if (translated == null) {
 			api.collectGameTextData(
 				TranslatorAPI.TranslationFileType.dialogue,
 				text
 			);
-		} else {
-			if (!config.translateWidgets()) {
-				return;
-			}
 
-			widget.setText(translated);
+			return;
 		}
+
+		if (playerName != null) {
+			translated = translated.replace("[PLAYER_NAME]", playerName);
+		}
+		if (!slayAmtAndMonster.isEmpty()) {
+			translated = translated.replace("[SLAYER_TASK_AMT_AND_MONSTER]", slayAmtAndMonster);
+		}
+
+		if (!config.translateWidgets()) {
+			return;
+		}
+
+		widget.setText(translated);
     }
 
 	private void collectGameTexts() {

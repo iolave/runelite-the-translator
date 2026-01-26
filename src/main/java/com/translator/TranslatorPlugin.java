@@ -206,7 +206,7 @@ public class TranslatorPlugin extends Plugin {
 		if (w.getType() == WidgetType.TEXT) {
 			String text = w.getText();
 			if (!text.isEmpty()) {
-				new Thread(() -> {
+				executor.execute(() -> {
 					try {
 						String translated = api.translate(config.selectLanguage(), text);
 						if (translated == null) {
@@ -220,7 +220,7 @@ public class TranslatorPlugin extends Plugin {
 						w.setText(String.format("%s<br>error: failed to translate", text));
 						log.error("failed to translate quest text", e);
 					}
-				}).start();
+				});
 			}
 		}
 
@@ -439,7 +439,7 @@ public class TranslatorPlugin extends Plugin {
 			return;
 		}
 
-		new Thread(() -> {
+		executor.execute(() -> {
 			try {
 				String translated = api.translate(config.selectLanguage(), msg);
 				clientThread.invokeLater(() -> {
@@ -469,6 +469,6 @@ public class TranslatorPlugin extends Plugin {
 				);
 				log.error("failed to translate in real time", e);
 			}
-		}).start();
+		});
 	}
 }

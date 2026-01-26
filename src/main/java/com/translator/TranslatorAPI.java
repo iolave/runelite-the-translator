@@ -5,11 +5,11 @@ import okhttp3.*;
 import org.apache.commons.text.StringEscapeUtils;
 
 import java.io.*;
-import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -28,16 +28,19 @@ class TranslatorAPI {
 	 */
 	@Inject
 	private OkHttpClient client;
+	@Inject
+	private TranslatorConfig config;
 	private final HashSet<String> collectedGameText = new HashSet<>();
 	private final String baseURL = "https://runelite-translator-api-production.up.railway.app";
-	// private final String baseURL = "http://localhost:8080";
 
 	/**
 	 * Send collected dialogues to the runelite-translator-api.
-	 *
-	 * @param arr array of dialogues
 	 */
 	void sendCollectedGameText() throws Exception {
+		if (!config.enableTextCapture()) {
+			return;
+		}
+
 		if (collectedGameText.isEmpty()) {
 			return;
 		}
@@ -143,10 +146,14 @@ class TranslatorAPI {
 		);
 	}
 
-	public String translate(
+	@Nullable public String translate(
 		TranslatorConfig.Language target,
 		String text
 	) throws Exception {
+		if (!config.enableRealtimeTranslations()) {
+			return null;
+		}
+
 		String to = null;
 		switch (target) {
 			case dutch: to = "nl"; break;

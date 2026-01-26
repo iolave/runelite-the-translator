@@ -58,7 +58,7 @@ import static net.runelite.api.gameval.InterfaceID.*;
 public class TranslatorPlugin extends Plugin {
 	private static final Logger log = LoggerFactory.getLogger(TranslatorPlugin.class);
 	@Inject
-    private TranslatorConfig config;
+	private TranslatorConfig config;
     @Inject
     private Client client;
     @Inject
@@ -209,6 +209,10 @@ public class TranslatorPlugin extends Plugin {
 				new Thread(() -> {
 					try {
 						String translated = api.translate(config.selectLanguage(), text);
+						if (translated == null) {
+							return;
+						}
+
 						clientThread.invokeLater(() -> {
 							w.setText(String.format("%s", translated));
 						});
@@ -249,7 +253,7 @@ public class TranslatorPlugin extends Plugin {
 	@Subscribe
 	public void onScriptPostFired(ScriptPostFired event) {
 		if (event.getScriptId() == ScriptID.QUEST_UPDATE_LINECOUNT) {
-			if (config.translateQuestGuide()) {
+			if (config.enableRealtimeTranslations() && config.translateQuestGuide()) {
 				translateWidgetTextRecursively(client.getWidget(Questjournal.UNIVERSE));
 			}
 		}
@@ -424,7 +428,7 @@ public class TranslatorPlugin extends Plugin {
 			return;
 		}
 
-		if (!config.translateChatBoxRT()) {
+		if (!config.translateChatBox()) {
 			return;
 		}
 		if (name != null && name.equals("translator")) {

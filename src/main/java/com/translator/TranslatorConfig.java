@@ -24,10 +24,7 @@
  */
 package com.translator;
 
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
-import net.runelite.client.config.ConfigSection;
+import net.runelite.client.config.*;
 
 @ConfigGroup("translator")
 public interface TranslatorConfig extends Config {
@@ -41,7 +38,6 @@ public interface TranslatorConfig extends Config {
 		swedish,
 		dutch
 	}
-
 	@ConfigSection(
 		position = 1,
 		name = "General configuration",
@@ -75,17 +71,17 @@ public interface TranslatorConfig extends Config {
 
 	@ConfigSection(
 		position = 2,
-		name = "Chat box translations",
-		description = "Chat box translation options (dialogues, options and messages)"
+		name = "Static translations",
+		description = "Translate using files from the github.com/iolave/osrs-translations repository"
 	)
-	String chatboxTranslations = "chatboxTranslations";
+	String staticTranslations = "staticTranslations";
 
 	@ConfigItem(
 		keyName = "translateWidgets",
-		name = "Translate dialogues",
+		name = "Chatbox: Translate dialogues",
 		description = "Translate chat box dialogues",
 		position = 1,
-		section = chatboxTranslations
+		section = staticTranslations
 	)
 	default boolean translateWidgets() {
 		return true;
@@ -93,53 +89,62 @@ public interface TranslatorConfig extends Config {
 
 	@ConfigItem(
 		keyName = "translateWidgetsOptions",
-		name = "Translate dialogues options",
+		name = "Chatbox: Translate dialogues options",
 		description = "Translate chatbox dialogue options (messes with quest helper)",
 		position = 2,
-		section = chatboxTranslations
+		section = staticTranslations
 	)
 	default boolean translateWidgetsOptions() {
-		return false;
+		return true;
 	}
-
-	@ConfigItem(
-		keyName = "translateChatBoxRT",
-		name = "Translate messages in real time",
-		description = "Translate chat box messages in real time",
-		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or verified by Runelite developers.",
-		position = 3,
-		section = chatboxTranslations
-	)
-	default boolean translateChatBoxRT() {
-		return false;
-	}
-
-	@ConfigSection(
-		position = 3,
-		name = "Pop-up's translations",
-		description = "In-game pop-up's translations (right click menu, quest guides)"
-	)
-	String popupsTranslations = "popupsTranslations";
 
 	@ConfigItem(
 		keyName = "translateMenuEntries",
-		name = "Translate menu entries",
-		description = "Translate menu entries",
-		position = 1,
-		section = popupsTranslations
+		name = "Menu: Translate entries",
+		description = "Translate menu entries like (Walk here, Use, Rub, etc)",
+		position = 3,
+		section = staticTranslations
 	)
 	default boolean translateMenuEntries() {
 		return true;
 	}
+
+	@ConfigSection(
+		position = 4,
+		name = "Real-time translations",
+		description = "Translate texts within OSRS in real-time"
+	)
+	String realtimeTranslations = "realtimeTranslations";
+
+	@ConfigItem(
+		keyName = "enableRealtimeTranslations",
+		name = "Enable real-time translations",
+		description = "Enable this plugin to do translations in real-time",
+		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or verified by Runelite developers.",
+		position = 1,
+		section = realtimeTranslations
+	)
+	default boolean enableRealtimeTranslations() {
+		return false;
+	}
 	@ConfigItem(
 		keyName = "translateQuestGuide",
-		name = "Translate quest guides in real time",
+		name = "Journals: Translate quest guides",
 		description = "Translate quest guide journals in real time",
-		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or verified by Runelite developers.",
 		position = 2,
-		section = popupsTranslations
+		section = realtimeTranslations
 	)
 	default boolean translateQuestGuide() {
+		return true;
+	}
+	@ConfigItem(
+		keyName = "translateChatBox",
+		name = "Chatbox: Translate messages",
+		description = "Translate chat box messages in real time",
+		position = 3,
+		section = realtimeTranslations
+	)
+	default boolean translateChatBox() {
 		return false;
 	}
 }

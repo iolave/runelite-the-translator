@@ -92,13 +92,30 @@ class TranslatorAPI {
 		String url = buildTranslationFileURL(type, lang);
 
 		try {
-			in = URI.create(url).toURL().openStream();
+			Request req = new Request.Builder()
+				.method("GET", null)
+				.url(url)
+				.build();
+
+			Response response = client.newCall(req).execute();
+			if (response.code() != 200) {
+				response.close();
+				throw new Exception("failed to download translation file, got status " + response.code());
+			}
+			ResponseBody body = response.body();
+			if (body == null) {
+				throw new Exception("got null body");
+			}
+
+			in = body.byteStream();
 		} catch (IOException e) {
 			String msg = String.format("failed to download %s translation for %s", lang, type);
 			throw new Exception(msg, e);
 		}
 
-		return parseCSV(in, ";");
+		HashMap<String,String> map = parseCSV(in, ";");
+		in.close();
+		return map;
 	}
 
 	private HashMap<String, String> parseCSV(InputStream in, String delimiter) throws Exception {

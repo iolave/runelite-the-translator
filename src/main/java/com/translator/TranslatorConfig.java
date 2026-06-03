@@ -28,7 +28,7 @@ import net.runelite.client.config.*;
 
 @ConfigGroup("translator")
 public interface TranslatorConfig extends Config {
-	enum Language{
+	enum Language {
 		finnish,
 		french,
 		german,
@@ -36,8 +36,9 @@ public interface TranslatorConfig extends Config {
 		portuguese,
 		spanish,
 		swedish,
-		dutch
+		dutch,
 	}
+
 	@ConfigSection(
 		position = 1,
 		name = "General configuration",
@@ -59,9 +60,11 @@ public interface TranslatorConfig extends Config {
 	@ConfigItem(
 		keyName = "enableOSRSTextCollection",
 		name = "Enable text capture",
-		description = "If enabled, OSRS game texts will be captured in order to improve and have a more complete translation system (dialogues, guides, npc names).\n"+
+		description = "If enabled, OSRS game texts will be captured in order to improve and have a more" +
+			" complete translation system (dialogues, guides, npc names).\n" +
 			"We highly suggest to enable this option so you can contribute to the plugin.",
-		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or verified by Runelite developers.",
+		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or" +
+			" verified by Runelite developers.",
 		position = 2,
 		section = generalConfigSection
 	)
@@ -120,13 +123,15 @@ public interface TranslatorConfig extends Config {
 		keyName = "enableRealtimeTranslations",
 		name = "Enable real-time translations",
 		description = "Enable this plugin to do translations in real-time",
-		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or verified by Runelite developers.",
+		warning = "Enabling this feature submits your IP address to a 3rd-party server not controlled or" +
+			" verified by Runelite developers.",
 		position = 1,
 		section = realtimeTranslations
 	)
 	default boolean enableRealtimeTranslations() {
 		return false;
 	}
+
 	@ConfigItem(
 		keyName = "translateQuestGuide",
 		name = "Journals: Translate quest guides",
@@ -137,6 +142,7 @@ public interface TranslatorConfig extends Config {
 	default boolean translateQuestGuide() {
 		return true;
 	}
+
 	@ConfigItem(
 		keyName = "translateChatBox",
 		name = "Chatbox: Translate messages",

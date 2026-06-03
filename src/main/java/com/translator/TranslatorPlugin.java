@@ -24,7 +24,14 @@
  */
 package com.translator;
 
+import static net.runelite.api.gameval.InterfaceID.*;
+
 import com.google.inject.Provides;
+import java.util.HashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import javax.inject.Inject;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.widgets.ComponentID;
@@ -34,64 +41,61 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.game.ItemManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
-import java.io.*;
-import java.net.*;
-import java.util.HashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import static net.runelite.api.gameval.InterfaceID.*;
-
-@PluginDescriptor(
-        name = "Translator",
-        description = "translate npc, items, objects and dialogue",
-        tags = {"actions"}
-)
+@PluginDescriptor(name = "Translator", description = "translate npc, items, objects and dialogue", tags = { "actions" })
 public class TranslatorPlugin extends Plugin {
-	private static final Logger log = LoggerFactory.getLogger(TranslatorPlugin.class);
+
+	private static final Logger log = LoggerFactory.getLogger(
+			TranslatorPlugin.class);
+
 	@Inject
 	private TranslatorConfig config;
-    @Inject
-    private Client client;
-    @Inject
-    private ItemManager itemManager;
-    @Provides
-    TranslatorConfig provideConfig(ConfigManager configManager) {return configManager.getConfig(TranslatorConfig.class);}
+
+	@Inject
+	private Client client;
+
+	@Inject
+	private ItemManager itemManager;
+
+	@Provides
+	TranslatorConfig provideConfig(ConfigManager configManager) {
+		return configManager.getConfig(TranslatorConfig.class);
+	}
+
 	@Inject
 	private TranslatorAPI api;
+
 	private ScheduledExecutorService executor;
+
 	@Inject
 	private ClientThread clientThread;
 
 	private HashMap<TranslatorAPI.TranslationFileType, HashMap<String, String>> maps = new HashMap<>();
 
-    private Widget prevTickWidget;
-    private Actor actor;
-	private final Long dataCollectionPeriod = 5L;
-	private final TimeUnit dataCollectionTU = TimeUnit.MINUTES;
+	private Widget prevTickWidget;
+	private Actor actor;
+	private final Long dataCollectionPeriod = 15L;
+	private final TimeUnit dataCollectionTU = TimeUnit.SECONDS;
 
 	private void loadTranslation(TranslatorConfig.Language lang) {
 		executor.execute(() -> {
-				for (TranslatorAPI.TranslationFileType t : TranslatorAPI.TranslationFileType.values()) {
-					try {
-						maps.put(t, api.getTranslationMap(t, lang));
-					} catch (Exception e) {
-						log.error("failed to load translation '{}:{}'", t, lang, e);
-					}
+			for (TranslatorAPI.TranslationFileType t : TranslatorAPI.TranslationFileType.values()) {
+				try {
+					maps.put(t, api.getTranslationMap(t, lang));
+				} catch (Exception e) {
+					log.error("failed to load translation '{}:{}'", t, lang, e);
 				}
+			}
 		});
 	}
 
-    @Override
-    protected void startUp() {
+	@Override
+	protected void startUp() {
 		executor = Executors.newSingleThreadScheduledExecutor();
 
 		for (TranslatorAPI.TranslationFileType t : TranslatorAPI.TranslationFileType.values()) {
@@ -102,13 +106,12 @@ public class TranslatorPlugin extends Plugin {
 
 		if (config.enableTextCapture()) {
 			executor.scheduleAtFixedRate(
-				this::collectGameTexts,
-				0,
-				dataCollectionPeriod,
-				dataCollectionTU
-			);
+					this::collectGameTexts,
+					0,
+					dataCollectionPeriod,
+					dataCollectionTU);
 		}
-    }
+	}
 
 	@Override
 	protected void shutDown() {
@@ -128,74 +131,76 @@ public class TranslatorPlugin extends Plugin {
 		if (event.getKey().equals("enableOSRSTextCollection")) {
 			if (config.enableTextCapture()) {
 				executor.scheduleAtFixedRate(
-					this::collectGameTexts,
-					0,
-					dataCollectionPeriod,
-					dataCollectionTU
-				);
+						this::collectGameTexts,
+						0,
+						dataCollectionPeriod,
+						dataCollectionTU);
 			} else {
 				executor.shutdownNow();
 			}
 		}
 	}
 
-    private String notedItemsCheck(HashMap<String, String> words, Integer id){
-        String translated = null;
-        if (words == maps.get(TranslatorAPI.TranslationFileType.item)) {
-            final ItemComposition itemComp = itemManager.getItemComposition(id);
-            if (itemComp.getNote() == 799) {
-                translated = words.get(String.valueOf(itemComp.getLinkedNoteId()));
-            }
-        }
-        return translated;
-    }
+	private String notedItemsCheck(HashMap<String, String> words, Integer id) {
+		String translated = null;
+		if (words == maps.get(TranslatorAPI.TranslationFileType.item)) {
+			final ItemComposition itemComp = itemManager.getItemComposition(id);
+			if (itemComp.getNote() == 799) {
+				translated = words.get(
+						String.valueOf(itemComp.getLinkedNoteId()));
+			}
+		}
+		return translated;
+	}
 
-    private void translateMenuEntrys(HashMap<String, String> words, MenuEntry menuEntry, Integer id){
-        String target = menuEntry.getTarget();
+	private void translateMenuEntrys(
+			HashMap<String, String> words,
+			MenuEntry menuEntry,
+			Integer id) {
+		String target = menuEntry.getTarget();
 
-        if (target.length() > 0) {
-            String translated = words.get(id.toString());
-            String notedId = notedItemsCheck(words, id);
-            if (notedId != null){
-                translated = notedId;
-            }
-            String[] subStrings = target.split(">");
-            int colStart = subStrings[0].length() + 1;
-            String colour = target.substring(0, colStart);
+		if (target.length() > 0) {
+			String translated = words.get(id.toString());
+			String notedId = notedItemsCheck(words, id);
+			if (notedId != null) {
+				translated = notedId;
+			}
+			String[] subStrings = target.split(">");
+			int colStart = subStrings[0].length() + 1;
+			String colour = target.substring(0, colStart);
 
-            if (subStrings.length > 2) {
-                //npc with combat lvl
-                int combatStart = target.split("<")[1].length() + 1;
-                String combat = target.substring(combatStart);
+			if (subStrings.length > 2) {
+				// npc with combat lvl
+				int combatStart = target.split("<")[1].length() + 1;
+				String combat = target.substring(combatStart);
 
-                if (translated != null) {
-                    menuEntry.setTarget(colour + translated + combat);
-                }
-            } else {
-                String[] itemSubStrings = target.split("\\(");
-                //amount after item
-                if (itemSubStrings.length > 1){
-                    String amount = "("+itemSubStrings[itemSubStrings.length-1];
-                    if (translated != null) {
-                        menuEntry.setTarget(colour + translated + amount);
-                    }
-                }
-                else if (translated != null) {
-                    //items
-                    menuEntry.setTarget(colour + translated);
-                }
-            }
-        }
-    }
+				if (translated != null) {
+					menuEntry.setTarget(colour + translated + combat);
+				}
+			} else {
+				String[] itemSubStrings = target.split("\\(");
+				// amount after item
+				if (itemSubStrings.length > 1) {
+					String amount = "(" + itemSubStrings[itemSubStrings.length - 1];
+					if (translated != null) {
+						menuEntry.setTarget(colour + translated + amount);
+					}
+				} else if (translated != null) {
+					// items
+					menuEntry.setTarget(colour + translated);
+				}
+			}
+		}
+	}
 
-    @Subscribe
-    public void onInteractingChanged(InteractingChanged event)
-    {
-        if (event.getTarget() == null || event.getSource() != client.getLocalPlayer()) {
-            return;
-        }
-        actor = event.getTarget();
-    }
+	@Subscribe
+	public void onInteractingChanged(InteractingChanged event) {
+		if (event.getTarget() == null ||
+				event.getSource() != client.getLocalPlayer()) {
+			return;
+		}
+		actor = event.getTarget();
+	}
 
 	void translateWidgetTextRecursively(Widget w) {
 		if (w == null) {
@@ -208,7 +213,9 @@ public class TranslatorPlugin extends Plugin {
 			if (!text.isEmpty()) {
 				executor.execute(() -> {
 					try {
-						String translated = api.translate(config.selectLanguage(), text);
+						String translated = api.translate(
+								config.selectLanguage(),
+								text);
 						if (translated == null) {
 							return;
 						}
@@ -217,7 +224,10 @@ public class TranslatorPlugin extends Plugin {
 							w.setText(String.format("%s", translated));
 						});
 					} catch (Exception e) {
-						w.setText(String.format("%s<br>error: failed to translate", text));
+						w.setText(
+								String.format(
+										"%s<br>error: failed to translate",
+										text));
 						log.error("failed to translate quest text", e);
 					}
 				});
@@ -253,44 +263,47 @@ public class TranslatorPlugin extends Plugin {
 	@Subscribe
 	public void onScriptPostFired(ScriptPostFired event) {
 		if (event.getScriptId() == ScriptID.QUEST_UPDATE_LINECOUNT) {
-			if (config.enableRealtimeTranslations() && config.translateQuestGuide()) {
-				translateWidgetTextRecursively(client.getWidget(Questjournal.UNIVERSE));
+			if (config.enableRealtimeTranslations() &&
+					config.translateQuestGuide()) {
+				translateWidgetTextRecursively(
+						client.getWidget(Questjournal.UNIVERSE));
 			}
 		}
 	}
 
-    @Subscribe
-    public void onGameTick(GameTick event) {
-        if (actor != null)
-        {
-            checkWidgetDialogs();
-            checkWidgetOptionDialogs();
-        }
-    }
+	@Subscribe
+	public void onGameTick(GameTick event) {
+		if (actor != null) {
+			checkWidgetDialogs();
+			checkWidgetOptionDialogs();
+		}
+	}
 
 	private void checkWidgetOptionDialogs() {
-		Widget playerOptionsWidget = client.getWidget(ComponentID.DIALOG_OPTION_OPTIONS);
-        if (playerOptionsWidget == null) {
-            return;
-        }
+		Widget playerOptionsWidget = client.getWidget(
+				ComponentID.DIALOG_OPTION_OPTIONS);
+		if (playerOptionsWidget == null) {
+			return;
+		}
 
-        Widget[] optionWidgets = playerOptionsWidget.getChildren();
+		Widget[] optionWidgets = playerOptionsWidget.getChildren();
 		if (optionWidgets == null) {
 			return;
 		}
 
 		for (Widget widget : optionWidgets) {
-            String optionText = widget.getText();
-            if (optionText == null) {
-                continue;
-            }
+			String optionText = widget.getText();
+			if (optionText == null) {
+				continue;
+			}
 			optionText = optionText.replace("<br>", " ");
-			String translated = maps.get(TranslatorAPI.TranslationFileType.dialogue).get(optionText);
-            if (translated == null) {
+			String translated = maps
+					.get(TranslatorAPI.TranslationFileType.dialogue)
+					.get(optionText);
+			if (translated == null) {
 				api.collectGameTextData(
-					TranslatorAPI.TranslationFileType.dialogue,
-					optionText
-				);
+						TranslatorAPI.TranslationFileType.dialogue,
+						optionText);
 			} else {
 				if (!config.translateWidgetsOptions()) {
 					return;
@@ -301,23 +314,23 @@ public class TranslatorPlugin extends Plugin {
 		}
 	}
 
-    private void checkWidgetDialogs() {
-        Widget widget;
-        if (client.getWidget(ComponentID.DIALOG_NPC_TEXT) != null) {
-            widget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
-        } else {
-            widget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
-        }
+	private void checkWidgetDialogs() {
+		Widget widget;
+		if (client.getWidget(ComponentID.DIALOG_NPC_TEXT) != null) {
+			widget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
+		} else {
+			widget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
+		}
 
-        if (widget == null) {
-            return;
-        }
+		if (widget == null) {
+			return;
+		}
 
-        String text = widget.getText();
-        if (text == null) {
-            return;
-        }
-        text = text.replace("<br>", " ");
+		String text = widget.getText();
+		if (text == null) {
+			return;
+		}
+		text = text.replace("<br>", " ");
 		String playerName = client.getLocalPlayer().getName();
 		if (playerName != null) {
 			text = text.replaceAll(playerName, "[PLAYER_NAME]");
@@ -328,12 +341,13 @@ public class TranslatorPlugin extends Plugin {
 			text = "Your new task is to kill [SLAYER_TASK_AMT_AND_MONSTER]";
 		}
 
-		String translated = maps.get(TranslatorAPI.TranslationFileType.dialogue).get(text);
+		String translated = maps
+				.get(TranslatorAPI.TranslationFileType.dialogue)
+				.get(text);
 		if (translated == null) {
 			api.collectGameTextData(
-				TranslatorAPI.TranslationFileType.dialogue,
-				text
-			);
+					TranslatorAPI.TranslationFileType.dialogue,
+					text);
 
 			return;
 		}
@@ -342,7 +356,9 @@ public class TranslatorPlugin extends Plugin {
 			translated = translated.replace("[PLAYER_NAME]", playerName);
 		}
 		if (!slayAmtAndMonster.isEmpty()) {
-			translated = translated.replace("[SLAYER_TASK_AMT_AND_MONSTER]", slayAmtAndMonster);
+			translated = translated.replace(
+					"[SLAYER_TASK_AMT_AND_MONSTER]",
+					slayAmtAndMonster);
 		}
 
 		if (!config.translateWidgets()) {
@@ -350,7 +366,7 @@ public class TranslatorPlugin extends Plugin {
 		}
 
 		widget.setText(translated);
-    }
+	}
 
 	private void collectGameTexts() {
 		try {
@@ -367,13 +383,14 @@ public class TranslatorPlugin extends Plugin {
 		// - the entry option
 		if (config.enableTextCapture()) {
 			api.collectGameTextData(
-				TranslatorAPI.TranslationFileType.menu_entry_option,
-				opt
-			);
+					TranslatorAPI.TranslationFileType.menu_entry_option,
+					opt);
 		}
 		// translate menu entry options
 		if (opt != null && !opt.isEmpty()) {
-			String translated = maps.get(TranslatorAPI.TranslationFileType.menu_entry_option).get(opt);
+			String translated = maps
+					.get(TranslatorAPI.TranslationFileType.menu_entry_option)
+					.get(opt);
 			if (translated == null) {
 				return;
 			}
@@ -382,32 +399,59 @@ public class TranslatorPlugin extends Plugin {
 		}
 
 		// OLD TRANSLATION
-		//item
+		// item
 		if (entry.getItemId() > 0) {
-			translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getItemId());
+			translateMenuEntrys(
+					maps.get(TranslatorAPI.TranslationFileType.item),
+					entry,
+					entry.getItemId());
 		}
-		//equipped item
-		if (entry.getWidget() != null && entry.getWidget().getId() <= 25362457 && entry.getWidget().getId() >= 25362447) {
-			translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getWidget().getChild(1).getItemId());
+		// equipped item
+		if (entry.getWidget() != null &&
+				entry.getWidget().getId() <= 25362457 &&
+				entry.getWidget().getId() >= 25362447) {
+			translateMenuEntrys(
+					maps.get(TranslatorAPI.TranslationFileType.item),
+					entry,
+					entry.getWidget().getChild(1).getItemId());
 		}
-		//ground items
-		else if (entry.getType() == MenuAction.EXAMINE_ITEM_GROUND | entry.getType() == MenuAction.GROUND_ITEM_THIRD_OPTION ) {
-			translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.item), entry, entry.getIdentifier());
+		// ground items
+		else if ((entry.getType() == MenuAction.EXAMINE_ITEM_GROUND) |
+				(entry.getType() == MenuAction.GROUND_ITEM_THIRD_OPTION)) {
+			translateMenuEntrys(
+					maps.get(TranslatorAPI.TranslationFileType.item),
+					entry,
+					entry.getIdentifier());
 		}
-		//not item
+		// not item
 		else if (entry.getItemId() == -1) {
-			//player
+			// player
 			if (entry.getPlayer() != null) {
 			}
-			//npc
+			// npc
 			else if (entry.getNpc() != null) {
-				translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.npc), entry, entry.getNpc().getId());
+				translateMenuEntrys(
+						maps.get(TranslatorAPI.TranslationFileType.npc),
+						entry,
+						entry.getNpc().getId());
 			}
-			//object
-			else if (entry.getIdentifier() > 0 & entry.getType() != MenuAction.CC_OP & entry.getType() != MenuAction.RUNELITE & entry.getType() != MenuAction.WALK && entry.getType() != MenuAction.CC_OP_LOW_PRIORITY) {
-				translateMenuEntrys(maps.get(TranslatorAPI.TranslationFileType.object), entry, entry.getIdentifier());
+			// object
+			else if ((entry.getIdentifier() > 0) &
+					(entry.getType() != MenuAction.CC_OP) &
+					(entry.getType() != MenuAction.RUNELITE) &
+					(entry.getType() != MenuAction.WALK) &&
+					entry.getType() != MenuAction.CC_OP_LOW_PRIORITY) {
+				translateMenuEntrys(
+						maps.get(TranslatorAPI.TranslationFileType.object),
+						entry,
+						entry.getIdentifier());
 			}
 		}
+	}
+
+	@Subscribe
+	public void onItemContainerChanged(ItemContainerChanged event) {
+		System.out.println(event.toString());
 	}
 
 	@Subscribe
@@ -416,8 +460,8 @@ public class TranslatorPlugin extends Plugin {
 			MenuEntry entry = event.getMenuEntry();
 			translateMenuEntry(entry);
 		}
-
 	}
+
 	@Subscribe
 	public void onChatMessage(ChatMessage event) {
 		ChatMessageType type = event.getType();
@@ -445,28 +489,27 @@ public class TranslatorPlugin extends Plugin {
 				clientThread.invokeLater(() -> {
 					if (name == null || name.isEmpty()) {
 						client.addChatMessage(
-							ChatMessageType.GAMEMESSAGE,
-							"translator",
-							String.format("[translator] %s", translated),
-							sender
-						);
+								ChatMessageType.GAMEMESSAGE,
+								"translator",
+								String.format("[translator] %s", translated),
+								sender);
 					} else {
 						client.addChatMessage(
-							ChatMessageType.GAMEMESSAGE,
-							"translator",
-							String.format("[translator] (%s) %s", event.getName(), translated),
-							sender
-						);
+								ChatMessageType.GAMEMESSAGE,
+								"translator",
+								String.format(
+										"[translator] (%s) %s",
+										event.getName(),
+										translated),
+								sender);
 					}
-
 				});
 			} catch (Exception e) {
 				client.addChatMessage(
-					type,
-					"translator",
-					"error: failed to translate in real time",
-					"translator"
-				);
+						type,
+						"translator",
+						"error: failed to translate in real time",
+						"translator");
 				log.error("failed to translate in real time", e);
 			}
 		});

@@ -1,9 +1,6 @@
 package com.translator;
 
 import com.google.gson.*;
-import okhttp3.*;
-import org.apache.commons.text.StringEscapeUtils;
-
 import java.io.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -12,15 +9,19 @@ import java.util.HashSet;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import okhttp3.*;
+import org.apache.commons.text.StringEscapeUtils;
 
 @Singleton
 class TranslatorAPI {
+
 	enum TranslationFileType {
 		dialogue,
 		npc,
 		item,
 		object,
-		menu_entry_option
+		menu_entry_option,
+		chat_message,
 	}
 
 	/**
@@ -28,10 +29,13 @@ class TranslatorAPI {
 	 */
 	@Inject
 	private OkHttpClient client;
+
 	@Inject
 	private TranslatorConfig config;
+
 	private final HashSet<String> collectedGameText = new HashSet<>();
-	private final String baseURL = "https://runelite-translator-api-production.up.railway.app";
+	private final String baseURL =
+		"https://runelite-translator-api-production.up.railway.app";
 
 	/**
 	 * Send collected dialogues to the runelite-translator-api.
@@ -52,7 +56,9 @@ class TranslatorAPI {
 				continue;
 			}
 			JsonPrimitive type = new JsonPrimitive(gtSplitted[0]);
-			JsonElement text = new JsonPrimitive(gt.replace(String.format("%s;",gtSplitted[0]), ""));
+			JsonElement text = new JsonPrimitive(
+				gt.replace(String.format("%s;", gtSplitted[0]), "")
+			);
 
 			JsonObject obj = new JsonObject();
 			obj.add("type", type);
@@ -73,17 +79,17 @@ class TranslatorAPI {
 		Response response = client.newCall(req).execute();
 		if (response.code() != 200) {
 			response.close();
-			throw new Exception("failed to send collected game text, got status " + response.code());
+			throw new Exception(
+				"failed to send collected game text, got status " +
+					response.code()
+			);
 		}
 		response.close();
 
 		collectedGameText.clear();
 	}
 
-	void collectGameTextData(
-		TranslationFileType type,
-		String text
-	) {
+	void collectGameTextData(TranslationFileType type, String text) {
 		collectedGameText.add(String.format("%s;%s", type, text));
 	}
 
@@ -103,7 +109,10 @@ class TranslatorAPI {
 			Response response = client.newCall(req).execute();
 			if (response.code() != 200) {
 				response.close();
-				throw new Exception("failed to download translation file, got status " + response.code());
+				throw new Exception(
+					"failed to download translation file, got status " +
+						response.code()
+				);
 			}
 			ResponseBody body = response.body();
 			if (body == null) {
@@ -112,16 +121,21 @@ class TranslatorAPI {
 
 			in = body.byteStream();
 		} catch (IOException e) {
-			String msg = String.format("failed to download %s translation for %s", lang, type);
+			String msg = String.format(
+				"failed to download %s translation for %s",
+				lang,
+				type
+			);
 			throw new Exception(msg, e);
 		}
 
-		HashMap<String,String> map = parseCSV(in, ";");
+		HashMap<String, String> map = parseCSV(in, ";");
 		in.close();
 		return map;
 	}
 
-	private HashMap<String, String> parseCSV(InputStream in, String delimiter) throws Exception {
+	private HashMap<String, String> parseCSV(InputStream in, String delimiter)
+		throws Exception {
 		HashMap<String, String> words = new HashMap<>();
 		BufferedReader br = new BufferedReader(new InputStreamReader(in));
 		String line;
@@ -146,41 +160,62 @@ class TranslatorAPI {
 		);
 	}
 
-	@Nullable public String translate(
-		TranslatorConfig.Language target,
-		String text
-	) throws Exception {
+	@Nullable
+	public String translate(TranslatorConfig.Language target, String text)
+		throws Exception {
 		if (!config.enableRealtimeTranslations()) {
 			return null;
 		}
 
 		String to = null;
 		switch (target) {
-			case dutch: to = "nl"; break;
-			case french: to = "fr"; break;
-			case german: to = "de"; break;
-			case finnish: to = "fi"; break;
-			case italian: to = "it"; break;
-			case spanish: to = "es"; break;
-			case swedish: to = "sv"; break;
-			case portuguese: to = "pt"; break;
+			case dutch:
+				to = "nl";
+				break;
+			case french:
+				to = "fr";
+				break;
+			case german:
+				to = "de";
+				break;
+			case finnish:
+				to = "fi";
+				break;
+			case italian:
+				to = "it";
+				break;
+			case spanish:
+				to = "es";
+				break;
+			case swedish:
+				to = "sv";
+				break;
+			case portuguese:
+				to = "pt";
+				break;
 			// ADD MISSING SUPPORTED LANGUAGES HERE
 			default:
-				throw new Exception("language " + target + " not supported yet");
+				throw new Exception(
+					"language " + target + " not supported yet"
+				);
 		}
 		Request req = new Request.Builder()
 			.method("GET", null)
-			.url(String.format(
-				"https://api.datpmt.com/api/v2/dictionary/translate?from_lang=en&to_lang=%s&string=%s",
-				to,
-				URLEncoder.encode(text,"utf-8")
-			))
+			.url(
+				String.format(
+					"https://api.datpmt.com/api/v2/dictionary/translate?from_lang=en&to_lang=%s&string=%s",
+					to,
+					URLEncoder.encode(text, "utf-8")
+				)
+			)
 			.build();
 
 		Response response = client.newCall(req).execute();
 		if (response.code() != 200) {
 			response.close();
-			throw new Exception("failed to translate game text, got status " + response.code());
+			throw new Exception(
+				"failed to translate game text, got status " + response.code()
+			);
 		}
 
 		ResponseBody body = response.body();
@@ -188,11 +223,11 @@ class TranslatorAPI {
 			throw new Exception("got null body from translator");
 		}
 
-		String translated =new String(body.bytes(), StandardCharsets.UTF_8);
+		String translated = new String(body.bytes(), StandardCharsets.UTF_8);
 		response.close();
 
 		if (translated.startsWith("\"") && translated.endsWith("\"")) {
-			translated = translated.substring(1, translated.length()-1);
+			translated = translated.substring(1, translated.length() - 1);
 		}
 
 		return StringEscapeUtils.unescapeJava(translated);
